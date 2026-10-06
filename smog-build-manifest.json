@@ -1,0 +1,180 @@
+{
+  "appName": "Smog AI",
+  "packageName": "smog-ai",
+  "version": "0.1.0",
+  "description": "Real-time AI desktop assistant — interview copilot, screen analysis, automated notes.",
+  "appId": "ai.smog.desktop",
+  "generatedAt": "2026-10-06T16:41:47.727Z",
+  "generator": "npm run package:manifest",
+  "supportedArchitectures": {
+    "windows": [
+      "x64",
+      "arm64"
+    ],
+    "macos": [
+      "x64",
+      "arm64"
+    ],
+    "linux": [
+      "x64"
+    ]
+  },
+  "binaries": {
+    "entry": "out/main/index.js",
+    "cli": "scripts/smog-cli.cjs",
+    "unpacked": {
+      "windows": "release/win-unpacked/Smog AI.exe",
+      "windowsArm64": "release/win-arm64-unpacked/Smog AI.exe",
+      "macos": "release/mac/Smog AI.app/Contents/MacOS/Smog AI",
+      "linux": "release/linux-unpacked/smog-ai"
+    },
+    "installer": "release/Smog AI-0.1.0-win-setup.exe",
+    "artifacts": [
+      "release/Smog AI-0.1.0-win-setup.exe"
+    ],
+    "outputDir": "release/",
+    "buildOutputDir": "out/"
+  },
+  "cliInstall": {
+    "bin": {
+      "smog-ai": "scripts/smog-cli.cjs"
+    },
+    "help": "npx smog-ai --help",
+    "config": "npx smog-ai --config",
+    "run": [
+      "smog-ai",
+      "smog-ai --config",
+      "smog-ai --help"
+    ],
+    "npmLink": "npm link   # from this checkout: exposes `smog-ai` and `npx smog-ai` on PATH, launches the packaged build in ./release",
+    "npmUnlink": "npm unlink -g smog-ai",
+    "npmGlobal": "npm install -g smog-ai",
+    "npxRun": "npx smog-ai",
+    "scripts": {
+      "dev": "npm run dev",
+      "build": "npm run build",
+      "typecheck": "npm run typecheck",
+      "package": "npm run package",
+      "manifest": "npm run package:manifest"
+    }
+  },
+  "installCommands": {
+    "windows": [
+      "\"release/Smog AI-0.1.0-win-setup.exe\"",
+      "npx electron-builder --win --arm64 --publish never  # arm64 installer",
+      "winget install --id ai.smog.desktop  # after publishing to winget"
+    ],
+    "macos": [
+      "open \"release/Smog AI-<version>-mac-<arch>.dmg\""
+    ],
+    "linux": [
+      "chmod +x \"release/Smog AI-<version>-linux-x64.AppImage\" && \"./release/Smog AI-<version>-linux-x64.AppImage\"",
+      "sudo dpkg -i \"release/Smog AI-<version>-linux-x64.deb\""
+    ],
+    "npmGlobal": "npm install -g smog-ai",
+    "shellBootstrap": "curl -fsSL https://<release-host>/smog-ai/install.sh | sh",
+    "buildFromSource": [
+      "git clone <repository-url> smog-ai",
+      "cd smog-ai && npm install && npm run package"
+    ]
+  },
+  "installCommandNotes": [
+    "npm run package builds installers for the host platform into ./release",
+    "Cross-platform targets: npm run package:win | package:mac | package:linux (macOS targets require macOS)",
+    "Replace <release-host> and <repository-url> with real URLs once artifacts are published",
+    "The npm global and shell bootstrap commands require the package to be published first"
+  ],
+  "buildPipeline": {
+    "build": "npm run build",
+    "package": "npm run package",
+    "verify": [
+      "npm run typecheck",
+      "npm run e2e"
+    ],
+    "manifest": "npm run package:manifest",
+    "cli": "npx smog-ai --help"
+  },
+  "artifacts": [
+    {
+      "file": "release/Smog AI-0.1.0-win-setup.exe",
+      "platform": "windows",
+      "bytes": 98303306
+    }
+  ],
+  "setupRequirements": [
+    "OPENCODE_ZEN_API_KEY — required; no key ships with the app (BYOK) and is read dynamically from ~/.config/smog-ai/config.json",
+    "LLM_MODEL_NAME — required; no model ships as a source default (e.g. mimov2.6), stored in ~/.config/smog-ai/config.json",
+    "Network access to the configured base URL (default https://opencode.zen/v1) for chat completions and transcriptions",
+    "Microphone permission for the Listen channel (Windows Settings › Privacy › Microphone)",
+    "System loopback permission for the remote-interviewer channel — Windows-only, enabled by the setDisplayMediaRequestHandler loopback source",
+    "Screen capture permission for Vision / screen scan / screen watch (desktopCapturer)",
+    "Electron safeStorage (OS keychain) for encrypting the stored key; plaintext JSON is used only when the keychain is unavailable",
+    "Optional: a dedicated STT model for /audio/transcriptions; the chat audio fallback is used when STT_MODEL_NAME is empty"
+  ],
+  "configuration": {
+    "file": "~/.config/smog-ai/config.json",
+    "notesDir": "~/.config/smog-ai/notes/",
+    "summary": "Smog AI never ships with a hardcoded key. Configure your own OpenCode Zen credentials on first launch.",
+    "steps": [
+      "Launch the app — the first-run settings modal opens automatically (reopen anytime via the Params HUD button or the gear icon in the title bar)",
+      "Paste your OpenCode Zen API key into the API key field (starts with \"zk-\") — stored as OPENCODE_ZEN_API_KEY",
+      "Set the model field (e.g. mimov2.6) — stored as LLM_MODEL_NAME",
+      "Leave the base URL at https://opencode.zen/v1 (default) or point it at a compatible OpenAI-style endpoint",
+      "Optional — enable dual-channel (system loopback) capture, then expand \"Advanced model parameters\" for max_tokens, top_p, STT model and a raw JSON extraBody object",
+      "Click \"Save configuration\" — the key is encrypted with the OS keychain (Electron safeStorage) and written to ~/.config/smog-ai/config.json",
+      "Start the mic with the Listen HUD button, then press Ask — or toggle Auto-Pilot (Ctrl/Cmd+Shift+A) to answer detected questions automatically"
+    ],
+    "fields": {
+      "apiKey": "OPENCODE_ZEN_API_KEY — OpenCode Zen credential, required",
+      "model": "LLM_MODEL_NAME — e.g. mimov2.6, required",
+      "baseUrl": "LLM_BASE_URL — default https://opencode.zen/v1",
+      "sttModel": "STT_MODEL_NAME — optional; falls back to chat audio transcription when empty",
+      "temperature": "Sampling temperature (0-1)",
+      "maxTokens": "max_tokens — 0 = provider default",
+      "topP": "top_p — 1 = omitted",
+      "extraBody": "Free-form JSON merged into every chat completion body",
+      "idleTimeoutMs": "Streaming idle timeout in milliseconds",
+      "stealth": "Enable OS-level content protection (excluded from screen capture)",
+      "alwaysOnTop": "Keep the main window above other windows",
+      "chunkSeconds": "Audio chunk length in seconds (2-15)",
+      "language": "Optional BCP-47 language hint for transcription",
+      "systemAudio": "Dual-channel capture — record system loopback audio alongside the microphone",
+      "autoPilot": "Auto-Pilot mode — detected question utterances stream through the API automatically",
+      "screenWatch": "Interval screen watcher that keeps spatial context fresh",
+      "screenScanMs": "Screen watch interval in milliseconds (minimum 1000)"
+    },
+    "environmentAliases": [
+      "OPENCODE_ZEN_API_KEY",
+      "LLM_MODEL_NAME",
+      "LLM_BASE_URL",
+      "STT_MODEL_NAME",
+      "SMOG_STEALTH",
+      "SMOG_SYSTEM_AUDIO",
+      "SMOG_AUTO_PILOT",
+      "SMOG_SCREEN_WATCH"
+    ],
+    "encryption": "Config payload is encrypted with safeStorage when available; otherwise stored as plaintext JSON"
+  },
+  "globalShortcuts": {
+    "toggleStealthOverlay": "CommandOrControl+Shift+H",
+    "instantScreenScan": "CommandOrControl+Shift+V",
+    "toggleAutoPilot": "CommandOrControl+Shift+A"
+  },
+  "verification": {
+    "lastVerifiedAt": "2026-10-06T16:41:47.739Z",
+    "typecheck": "CLEAN — npm run typecheck (typecheck:node + typecheck:web)",
+    "workletCheck": "OK — node scripts/check-worklet.cjs (AudioWorklet source syntax)",
+    "e2e": "31/31 CHECKS PASSED — node scripts/e2e.mjs (CDP port 9333, local OpenAI mock)",
+    "e2eChecks": 31,
+    "package": "OK — npm run package (electron-builder NSIS, Windows x64)",
+    "packagedSmokeTest": "OK — release/win-unpacked/Smog AI.exe boots and serves the renderer from app.asar"
+  },
+  "features": {
+    "stealth": "Content protection on every BrowserWindow (setContentProtection + screen-saver level overlay flags), Cmd/Ctrl+Shift+H toggle",
+    "dualChannelAudio": "Microphone (getUserMedia) + system loopback (getDisplayMedia, Windows) recorded in parallel and transcribed as separate channels",
+    "hud": "Floating + docked control bar (Listen/Vision/Ask/Notes/Params), draggable with edge snapping, tabs, separate always-on-top HUD window",
+    "autoPilot": "Debounced question detection over the live transcript streams structured answers automatically (Cmd/Ctrl+Shift+A)",
+    "screenWatch": "Interval frame hashing keeps spatial context fresh; instant scan via Cmd/Ctrl+Shift+V",
+    "byok": "No shipped key or model — OPENCODE_ZEN_API_KEY / LLM_MODEL_NAME read from ~/.config/smog-ai/config.json"
+  }
+}

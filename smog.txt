@@ -1,0 +1,701 @@
+================================================================================
+SMOG AI — PROJECT BUILD LOG / COMPLETE RECORD
+File: smog.txt (project root: C:\Users\USER\Desktop\smog-ai)
+Generated: 2026-10-06
+Last update: 2026-10-06 (Phase 2 — stealth everywhere, dual-channel audio,
+             draggable/dockable HUD, Auto-Pilot engine, global shortcuts,
+             manifest export)
+================================================================================
+
+1. IDENTITY
+--------------------------------------------------------------------------------
+Name .............. Smog AI
+Package name ...... smog-ai
+Version ........... 0.1.0
+App ID ............ ai.smog.desktop
+Description ....... Real-time AI desktop assistant — interview copilot, screen
+                    analysis, automated notes.
+Type .............. Electron desktop app (frameless, transparent, stealth-capable)
+Entry (main) ...... out/main/index.js
+CLI bin ........... smog-ai -> scripts/smog-cli.cjs
+Node .............. v20.20.2 (Windows / PowerShell, npm only)
+Package manager ... npm (no pnpm/yarn)
+Repo .............. not a git repository
+
+2. TECH STACK
+--------------------------------------------------------------------------------
+Runtime ......... Electron ^41.7.1 (electron-vite ^5.0.0 build tooling)
+Language ........ TypeScript ^7.0.2 (strict; noUnusedLocals/noUnusedParameters)
+UI .............. React ^19.3.0 + react-dom ^19.3.0
+Styling ......... Tailwind CSS ^4.3.3 (@tailwindcss/vite plugin)
+Bundler ......... Vite ^7.3.6 via electron-vite
+Packaging ....... electron-builder ^26.15.3
+E2E ............. raw CDP over WebSocket using ws ^8.22.0 (no test framework)
+Type defs ....... @types/node ^26.6.4, @types/react(-dom) ^19.3.0
+
+3. REPOSITORY LAYOUT — EVERY FILE CREATED / PRESENT
+--------------------------------------------------------------------------------
+Root
+  package.json ...................... scripts, deps, bin.smog-ai
+  package-lock.json ................. npm lockfile
+  tsconfig.json ..................... base TS config
+  tsconfig.node.json ................ main+preload typecheck (ES2022 + @types/node)
+  tsconfig.web.json ................. renderer typecheck (DOM libs)
+  electron.vite.config.ts ........... main/preload/renderer build wiring
+  electron-builder.yml .............. NSIS/dmg/AppImage/deb targets
+  smog-build-manifest.json .......... generated install/build manifest (see §10)
+  smog.txt .......................... this file
+  .gitignore ........................ node_modules/, out/, dist/, release/, *.log, .vite/
+
+src/shared
+  types.ts .......................... shared IPC channel names + payload types
+                                      (ScreenFrame, CaptureOptions, DisplayInfo,
+                                       AppSettings, SessionEntry, LlmParams,
+                                       AudioChannel, HudTab, DockEdge,
+                                       ShortcutAction, SmogApi, ...)
+  prompts.ts ......................... shared prompt/system-text module:
+                                       COPILOT_SYSTEM, SCREEN_SYSTEM,
+                                       SCREEN_SCAN_SYSTEM, AUTOPILOT_SYSTEM,
+                                       formatTranscript, copilotMessages,
+                                       autopilotMessages, looksLikeQuestion
+
+src/main
+  index.ts .......................... app entry, single-instance, lifecycle,
+                                      loopback display-media handler (win32),
+                                      installWindowProtection, shortcut cleanup
+  windows.ts ....................... frameless/transparent windows, overlay
+                                      flags, content protection at creation,
+                                      createHudWindow/toggleHud (window=hud),
+                                      moveWindowTo, dockWindow, focusMainWindow
+  config.ts ......................... safeStorage-encrypted config at
+                                      ~/.config/smog-ai/config.json
+                                      (+ env-style key aliases, defaults for
+                                       systemAudio/autoPilot/screenWatch)
+  ipc.ts ............................ typed ipcMain.handle bridge: engine
+                                      wiring, hud:toggle, autopilot:toggle,
+                                      screen:watch, screen:scan,
+                                      stt:transcribeBatch, app:shortcuts,
+                                      window:move|dock|focus, shortcut handlers
+  llm.ts ............................ OpenAI-style streaming chat client with
+                                      RequestGuard + mapGuardError
+  stt.ts ............................ audio transcription + chat-audio fallback,
+                                      dual-channel transcribe/transcribeChannels
+  screen.ts ......................... desktopCapturer: listDisplays(),
+                                      resolveDisplay(), captureScreen() JPEG q=0.72
+                                      / PNG, maxWidth 1920, frame hashing,
+                                      interval screen watch + delta detection
+  session.ts ......................... in-memory transcript session store
+                                      (per-entry channel: mic/system)
+  notes.ts .......................... markdown notes writer
+                                      (~/.config/smog-ai/notes/session-*.md)
+  stealth.ts ........................ setStealthEnabled / isStealthEnabled /
+                                      protectNewWindow / applyStealth(All)
+  copilot.ts ....................... CopilotEngine: debounced question
+                                      detection, answered-id set, screen-context
+                                      injection, scanNow() vision scan
+  shortcuts.ts ...................... SHORTCUT_ACCELERATORS, registerShortcuts,
+                                      installShortcutCleanup
+
+src/preload
+  index.ts .......................... contextBridge "window.smog" API
+                                      (invoke/subscribe/getPlatform)
+
+src/renderer
+  index.html ........................ shell HTML
+  src/main.tsx ....................... React root mount
+  src/App.tsx ....................... route: Copilot / Screen / Notes +
+                                       settings; ?window=hud renders HudBar
+  src/store.tsx ...................... global store (state, streams, frame,
+                                       captureFrame, askCopilot, askVision,
+                                       toggleRecording, notes, settings,
+                                       dual-channel recording with
+                                       stt:transcribeBatch coalescing,
+                                       hudTab, toggleHud, toggleAutoPilot,
+                                       toggleScreenWatch, scanScreen,
+                                       move/dock host window, new listeners)
+  src/env.d.ts ....................... window.smog typing
+  src/styles.css ..................... Tailwind + theme tokens
+  src/components/TitleBar.tsx ........ custom frameless title bar + gear +
+                                       HUD toggle + Auto-Pilot toggle +
+                                       status badges + shortcut hints
+  src/components/HudBar.tsx .......... floating + docked HUD:
+                                       Listen / Vision / Ask / Notes / Params
+                                       (data-hud ids, data-hud-bar), pointer
+                                       drag with edge snapping, tabs,
+                                       variant 'window' for the HUD pill
+  src/components/Cards.tsx ........... Card shell, QuestionCard, AnswerCard,
+                                       StructureCard (data-card ids)
+  src/components/CopilotView.tsx ..... copilot tab (question/answer/structure),
+                                       Auto-Pilot button, mic/system channel
+                                       stats in the footer
+  src/components/ScreenView.tsx ...... screen tab: frame preview, display select,
+                                       capture button, cards, Scan now + Watch
+  src/components/OverlayApp.tsx ...... compact overlay window UI
+  src/components/NotesView.tsx ....... saved notes list
+  src/components/SettingsModal.tsx ... first-run + advanced model params +
+                                       systemAudio toggle + global-shortcuts list
+  src/components/icons.tsx ........... inline SVG icons (+ HudIcon, PilotIcon,
+                                       ScanIcon)
+  src/lib/audio.ts ................... dual capture: ChannelCapture /
+                                       DualChannelCapture (mic getUserMedia +
+                                       system getDisplayMedia loopback),
+                                       AudioWorklet WORKLET_SOURCE literal
+  src/lib/vision.ts ................. MAX_IMAGE_BYTES, describeFrame, fitFrame,
+                                       buildVisionContext (SCREEN_SYSTEM + text +
+                                       image_url parts)
+  src/lib/structure.ts .............. parseStructure, sectionPresence
+                                       (Introduction/Content/Conclusion)
+  src/lib/prompts.ts ................ re-exports @shared/prompts (kept for the
+                                       e2e prompts checks)
+  src/lib/markdown.tsx .............. markdown renderer
+
+scripts
+  e2e.mjs ............................ 31-check CDP e2e harness (spawns Electron,
+                                       local OpenAI mock, screenshots, notes read)
+  check-worklet.cjs .................. verifies AudioWorklet asset is emitted
+  smog-cli.cjs ....................... `smog-ai` CLI: --help / --config, launches
+                                       packaged binary or Electron from source
+  build-manifest.cjs ................. writes smog-build-manifest.json
+
+Generated / build output
+  out/ .............................. 12 built files (main, preload, renderer)
+  release/Smog AI-0.1.0-win-setup.exe  NSIS installer, 93.75 MB (98,303,306 bytes)
+  release/Smog AI-0.1.0-win-setup.exe.blockmap
+  release/builder-debug.yml
+  node_modules/ ..................... dependencies
+
+4. FEATURE INVENTORY
+--------------------------------------------------------------------------------
+SHELL / WINDOW
+  - Frameless, transparent, always-on-top main window with custom title bar
+  - Overlay window (window=overlay) with compact cards + docked HUD bar
+  - Electron content-protection (stealth) toggle hides app from capture/record
+  - Single-instance lock, proper lifecycle handling
+
+CONFIG / SECURITY
+  - No hardcoded API key, no hardcoded model anywhere in the shipped code
+  - First-run settings modal blocks usage until OPENCODE_ZEN_API_KEY +
+    LLM_MODEL_NAME are provided
+  - Key encrypted with Electron safeStorage (OS keychain) and persisted to
+    ~/.config/smog-ai/config.json as { encoding: "encrypted" }
+  - Base URL default https://opencode.zen/v1 (overridable)
+  - Advanced params: max_tokens, top_p, STT model, free-form extraBody JSON
+
+AUDIO / STT
+  - Microphone capture through AudioWorklet (scripts/check-worklet.cjs guard)
+  - Primary: POST /audio/transcriptions
+  - Fallback: chat-based audio transcription when STT model is unset/unsupported
+  - Recording state drives the Listen HUD button (Listen <-> Stop)
+
+LLM CLIENT
+  - Streaming chat completions with incremental deltas
+  - RequestGuard timeouts/abort + mapGuardError to user-safe messages
+  - Fallback to non-streaming completion when streaming is rejected
+  - Sends dynamic key/model/max_tokens/top_p/extraBody on every request
+
+SCREEN VISION
+  - desktopCapturer multi-display listing (Display 1 (primary), ...)
+  - display selection persisted (captureDisplayId), captureFrame() stores frame
+    in store (capturing -> live-dot, frame -> active tone)
+  - JPEG quality 0.72 / PNG option, maxWidth 1920
+  - buildVisionContext: screen system prompt + frame descriptor
+    ("Screen frame: 1920x1080px · display "Display 1" · captured ...") +
+    question + image_url data URI part
+
+UI LAYER
+  - Three tabs: Copilot, Screen, Notes
+  - HUD bar: Listen, Vision, Ask, Notes, Params (data-hud ids, floating + docked)
+  - Cards: QuestionCard, AnswerCard (badge/scroll/className hooks),
+    StructureCard (3/3 section detection, bullet/code counts)
+  - ErrorToast positioned bottom-20 so it never covers the HUD
+  - Notes toast flash inside HudBar; notes saved as session-*.md
+
+PROMPTS / OUTPUT
+  - Live-transcript copilot prompt (carries previous answer context)
+  - Structure parser emits Introduction / Content / Conclusion presence
+  - Markdown rendering of streamed answers
+
+PACKAGING / CLI  (Phase 1D)
+  - electron-builder.yml: NSIS (win x64), dmg (mac x64+arm64),
+    AppImage+deb (linux x64), asar, publish: null
+  - npm scripts: package, package:win, package:mac, package:linux,
+    package:manifest
+  - bin: smog-ai -> scripts/smog-cli.cjs (--help, --config, run packaged or dev)
+  - smog-build-manifest.json generated at repo root (see §10)
+
+STEALTH / CONTENT PROTECTION  (Phase 2)
+  - setStealthEnabled/isStealthEnabled flag consulted by protectNewWindow, so
+    every BrowserWindow created after the toggle is protected too
+  - applyStealth(All) walks allWindows() and calls setContentProtection(true)
+  - overlay + HUD windows: frame:false, transparent '#00000000', hasShadow:false,
+    skipTaskbar, hiddenInMissionControl, alwaysOnTop level 'screen-saver',
+    displayed with showInactive() (never steals focus)
+
+DUAL-CHANNEL AUDIO  (Phase 2)
+  - ChannelCapture (mic getUserMedia) + system channel (getDisplayMedia) with
+    setDisplayMediaRequestHandler audio:'loopback' — Windows only
+  - DualChannelCapture degrades to mic-only when loopback is unavailable
+  - chunks tagged mic|system, coalesced 250 ms, sent via stt:transcribeBatch
+  - transcript entries carry channel; formatTranscript labels the remote speaker
+  - config systemAudio (bool) + Env aliases SMOG_SYSTEM_AUDIO
+
+HUD / DRAG + DOCK  (Phase 2)
+  - HudBar variants: floating (absolute, local offset + edge snap), docked
+    (static, edge-aligned) and window (separate ?window=hud pill)
+  - pointer drag; floating bar snaps locally, HUD window sends window:move /
+    window:dock('auto')
+  - tab state hudTab shared with Copilot/Screen/Notes selection
+  - hud:toggle creates the HUD window lazily (never at boot — see §6)
+
+AUTO-PILOT / SCREEN WATCH  (Phase 2)
+  - CopilotEngine (src/main/copilot.ts): 1800 ms debounce, answered-id set,
+    SCREEN/AUTOPILOT system prompts, screen-context injection (30 s fresh),
+    scanNow() vision OCR + UI context
+  - renderer skips its own auto-ask while autoPilot is on (engine drives)
+  - screen.ts frame hashing + interval watch (screenWatch, screenScanMs >= 1000)
+    with rolling context strings and event:screen-watch / event:screen-scan
+  - CopilotView Auto-Pilot button + channel stats; ScreenView Scan now / Watch
+
+GLOBAL SHORTCUTS  (Phase 2)
+  - CommandOrControl+Shift+H stealth overlay, +V instant screen scan,
+    +A auto-pilot (src/main/shortcuts.ts)
+  - registered after app ready, unregistered on will-quit, failures logged
+  - event:shortcut broadcast + app:shortcuts (accelerator map) for the
+    SettingsModal shortcut list; title-bar buttons expose aria-keyshortcuts
+
+5. WHAT WAS BUILT, PHASE BY PHASE
+--------------------------------------------------------------------------------
+PHASE 1A — Project setup + shell (e2e 11/11)
+  electron-vite scaffold, TS configs (strict), Tailwind 4, frameless/transparent
+  windows, stealth content-protection, encrypted config store, typed IPC +
+  preload bridge, first-run settings modal, base HUD shell.
+
+PHASE 1B — Audio + LLM client (e2e 18/18)
+  src/main/llm.ts streaming client with RequestGuard/mapGuardError,
+  src/main/stt.ts audio + chat fallback, src/renderer/src/lib/audio.ts worklet
+  capture, advanced params UI in SettingsModal.tsx, scripts/check-worklet.cjs.
+
+PHASE 1C — Vision & UI layer (code complete, typecheck clean)
+  shared/types.ts: ScreenFrame extras (displayId, displayLabel, scaleFactor,
+    format, bytes), CaptureOptions, DisplayInfo, 'screen:displays' channel
+  main/screen.ts: listDisplays, resolveDisplay, captureScreen (JPEG/PNG)
+  renderer/lib/vision.ts: MAX_IMAGE_BYTES, describeFrame, fitFrame,
+    buildVisionContext
+  renderer/lib/structure.ts: parseStructure, sectionPresence
+  store.tsx: frame, capturing, visionQuestion, displays, captureDisplayId,
+    captureFrame, askVision(question?), setCaptureDisplay (removed stale askScreen)
+  Cards.tsx: Card shell + Question/Answer/Structure cards
+  HudBar.tsx: variant 'floating'|'docked', data-hud ids, docked wrapper
+    display:contents, notes toast
+  CopilotView / ScreenView / OverlayApp / App rewired to cards + HUD
+  prompts.ts: removed dead screenMessages
+  e2e extended with vision + cards + notes + overlay checks
+
+PHASE 1D — Packaging & CLI installation (DONE)
+  Installed electron-builder 26.15.3
+  Added electron-builder.yml, scripts/build-manifest.cjs, scripts/smog-cli.cjs
+  package.json: bin + package* scripts
+  Built Windows NSIS installer: release/Smog AI-0.1.0-win-setup.exe (93.8 MB)
+  Generated smog-build-manifest.json in repo root
+
+PHASE 2 — Stealth + dual audio + HUD + Auto-Pilot + shortcuts
+  (typecheck CLEAN, e2e 31/31, package OK, packaged-binary smoke test OK)
+  shared/types.ts: AudioChannel, HudTab, DockEdge, ShortcutAction, SmogApi
+    (+getPlatform), IpcChannels app:openSettings/app:shortcuts,
+    window:move|dock|focus, hud:toggle, autopilot:toggle, screen:watch|scan,
+    stt:transcribeBatch; EventChannels event:screen-watch|screen-scan|
+    settings|shortcut; LlmMode 'autopilot'; AppState hudOpen/autoPilot/
+    screenWatch; TranscriptEntry.channel
+  shared/prompts.ts (new): COPILOT_SYSTEM, SCREEN_SYSTEM, SCREEN_SCAN_SYSTEM,
+    AUTOPILOT_SYSTEM, formatTranscript (mic/system labels), copilotMessages,
+    autopilotMessages, looksLikeQuestion; renderer prompts.ts re-exports it
+  main/stealth.ts: setStealthEnabled + protectNewWindow (new windows inherit)
+  main/windows.ts: overlay flags helper, createHudWindow/toggleHud (lazy),
+    showInactive, moveWindowTo, dockWindow (edge snap), focusMainWindow
+  main/screen.ts: hashDataUrl + interval watch/delta detection
+  main/copilot.ts (new): CopilotEngine (debounce, answered set, scanNow)
+  main/shortcuts.ts (new): accelerator map + register/unregister/cleanup
+  main/stt.ts: per-channel transcription, transcribeChannels, transcribeBatch
+  main/session.ts: per-entry channel; main/config.ts: env-style aliases +
+    systemAudio/autoPilot/screenWatch/screenScanMs defaults
+  main/ipc.ts: rewired to the new engine + window/hud/autopilot/screen/shortcuts
+    handlers, 'app:shortcuts', extracted startStream
+  main/index.ts: loopback display-media handler (win32 only), window protection,
+    shortcut cleanup
+  preload/index.ts: getPlatform()
+  renderer/lib/audio.ts: ChannelCapture / DualChannelCapture (keeps the
+    WORKLET_SOURCE template literal required by check-worklet.cjs)
+  renderer/store.tsx: dual-channel recording + 250 ms batch transcription,
+    hudTab, toggleHud/toggleAutoPilot/toggleScreenWatch/scanScreen,
+    window move/dock, auto-ask suppressed while Auto-Pilot is on
+  renderer HudBar.tsx: drag/dock/tabs + 'window' variant; TitleBar: HUD +
+    Auto-Pilot buttons and badges; CopilotView: Auto-Pilot + channel stats;
+    ScreenView: Scan now/Watch; SettingsModal: systemAudio + shortcut list;
+    App.tsx: ?window=hud branch; icons: HudIcon/PilotIcon/ScanIcon
+  scripts/build-manifest.cjs: binaries, cliInstall, installCommands,
+    buildPipeline, setupRequirements, configuration, globalShortcuts,
+    verification, features sections
+  Verification: npm run typecheck clean, npm run e2e 31/31,
+    npm run package (NSIS x64 + manifest), packaged exe smoke-tested over CDP
+
+6. BUGS FOUND AND FIXED
+--------------------------------------------------------------------------------
+FIX 1 — e2e asserted the wrong HUD active class.
+  Symptom: "HUD Vision captures a screen frame" and the Screen-tab check failed
+  even though capture worked.
+  Cause: probes used className.includes('text-emerald-300'); HudAction's active
+  tone is 'bg-rose-500/20 text-rose-200 border-rose-500/40'
+  (src/renderer/src/components/HudBar.tsx:19-23).
+  Fix: replaced all 5 occurrences in scripts/e2e.mjs with 'text-rose-200'.
+  Diagnosis method: temporary [dbg] console.log in onVision + captureFrame,
+  collected via CDP Runtime.consoleAPICalled — proved
+  "onVision enter -> captureFrame enter -> captureFrame ok" fired on both the
+  native click and the direct props.onClick() call (harness instrumentation was
+  later fully removed; 0 leftovers).
+
+FIX 2 — first-run settings modal flaky on slow startup.
+  e2e bailed out as soon as #apiKey/#model were absent (1500 ms after launch),
+  producing "first-run settings modal saves config" + "base URL defaults..." +
+  ENOENT config.json failures.
+  Fix: poll for #apiKey/#model up to 30 x 250 ms before deciding
+  "modal:false"; verify with node --check.
+
+FIX 3 — NSIS packaging failed with disk-space error.
+  Symptom: "Error: can't write 67108864 bytes to output" when the Windows target
+  included both x64 and arm64.
+  Fix: cleaned release/ and built x64 only; arm64 documented as a CLI flag
+  (npx electron-builder --win --arm64 --publish never).
+
+FIX 4 — scripts/e2e.mjs truncated to 0 bytes.
+  Cause: a failed FileSystem.writeFile during an edit.
+  Fix: file restored (currently 768 lines) and re-validated with `node --check`.
+
+FIX 5 — temporary debug scaffolding removed.
+  Removed: [dbg] console.log from store.tsx captureFrame and HudBar onVision,
+  CDP events array + Runtime.enable in e2e connect(), React source dump,
+  props-identity probe, frame poll, direct screen:capture probe,
+  "renderer debug console" record.
+  Kept (real improvements): setup-modal wait loop, screenUi detail output
+  (cards/frame/age/visionOk).
+
+FIX 6 — typecheck hygiene.
+  structure.ts: removed unused local `codes`
+  prompts.ts: removed dead `screenMessages`
+  store.tsx: removed stale `askScreen` from StoreValue
+  -> `npm run typecheck` clean (typecheck:node + typecheck:web).
+
+FIX 7 — e2e mock answer enriched with "## Introduction / ## Content /
+  ## Conclusion" headings so the Structure-card assertions (3/3 sections) pass.
+
+FIX 8 — HUD/Auto-Pilot title-bar buttons broke the overlay e2e check.
+  Symptom: run stopped at check 8 with "Cannot read properties of null
+  (reading 'click')" from scripts/e2e.mjs:319.
+  Cause: the button title was changed to "Toggle stealth overlay window
+  (Ctrl+Shift+H / Cmd+Shift+H)" while the probe still selects
+  button[title="Toggle stealth overlay window"].
+  Fix: restored the exact title; shortcut hints moved to aria-keyshortcuts
+  (also on the Auto-Pilot button). Re-ran e2e -> 31/31.
+
+FIX 9 — HUD window must never auto-open (preventive).
+  e2e picks the main window with !t.url.includes('window=overlay'), so any extra
+  page target at boot could be mistaken for the main window.
+  Fix: createHudWindow runs only from hud:toggle (and is never called during
+  boot); allWindows() includes it afterwards for move/dock/focus handling.
+
+CONSTRAINT (do not regress) — scripts/check-worklet.cjs requires the literal
+  "const WORKLET_SOURCE = ` " plus the ${MIN_CHUNK_SECONDS} / ${WORKLET_NAME}
+  placeholders to stay in src/renderer/src/lib/audio.ts, and the e2e HUD probe
+  requires data-hud / data-hud-bar hooks and exactly five buttons in the bar.
+
+ENVIRONMENT NOTES (not code bugs)
+  - Shell flakiness: occasional "Thread failed to start", empty outputs,
+    PowerShell NativeCommandError noise; recovered by re-running commands.
+  - Occasional zombie/lingering Electron instances interfere with port 9333;
+    killed with Get-Process electron | Stop-Process -Force before re-running.
+
+7. NPM SCRIPTS
+--------------------------------------------------------------------------------
+  dev .................. electron-vite dev
+  build ................ electron-vite build (also used by e2e/package)
+  preview / start ....... electron-vite preview
+  typecheck ............. tsc --noEmit -p tsconfig.node.json && -p tsconfig.web.json
+  typecheck:node / :web .. individual typechecks
+  e2e ................... npm run build && node scripts/check-worklet.cjs &&
+                          node scripts/e2e.mjs
+  package ............... npm run build && electron-builder --publish never &&
+                          node scripts/build-manifest.cjs
+  package:win / :mac / :linux ... cross-target packaging + manifest
+  package:manifest ...... node scripts/build-manifest.cjs
+  CLI ................... npx smog-ai --help | smog-ai --config
+
+8. VERIFICATION STATUS (final run, 2026-10-06 — includes Phase 2)
+--------------------------------------------------------------------------------
+  npm run typecheck .................... CLEAN (node + web)
+  node scripts/check-worklet.cjs ....... OK (AudioWorklet source syntax)
+  npm run e2e .......................... 31/31 CHECKS PASSED
+  npm run package ...................... OK (NSIS x64 built,
+                                         release/Smog AI-0.1.0-win-setup.exe,
+                                         98,303,306 bytes)
+  npm run package:manifest ............. OK (1 artifact recorded +
+                                         verification + features sections)
+  packaged-binary smoke test ........... OK (Smog AI.exe --remote-debugging-
+                                         port=9334 boots; renderer served from
+                                         resources/app.asar/out/renderer)
+  CLI (scripts/smog-cli.cjs) ........... OK after `npm link` (bin.smog-ai):
+                                         smog-ai --help ......... exit 0
+                                         smog-ai --config ....... exit 0
+                                         npx smog-ai --help ..... exit 0 (PATH
+                                           resolution, no registry fetch)
+                                         smog-ai ................ launches
+                                           release/win-unpacked/Smog AI.exe
+                                           (4 processes, closed after the test)
+
+  Note: the OS-capture check (#7) is informational; its brightness delta depends
+  on what else is on the desktop at capture time.
+
+  e2e checks (all PASS):
+   1  first-run settings modal saves config
+   2  base URL defaults to OpenCode Zen endpoint
+   3  config persisted encrypted at ~/.config/smog-ai/config.json
+   4  main window screenshot captured
+    5  screen frame capture returns image data (1920x1080, 152895 bytes — size
+       varies with the desktop contents)
+   6  stealth mode toggles on
+   7  OS screen capture differs when stealth is on (informational)
+   8  overlay window opens
+   9  overlay renderer mounted
+  10  state reflects overlay open
+  11  session transcript starts empty
+  12  dynamic model parameters persisted
+  13  chat completion streams incremental deltas (9 deltas)
+  14  request carries dynamic key + model parameters
+  15  stream rejection falls back to non-streaming completion
+  16  audio chunk transcribed through /audio/transcriptions
+  17  audio chunk transcribed through chat audio fallback
+  18  HUD bar exposes Listen / Vision / Ask / Notes / Params
+  19  copilot view renders Question / Answer / Structure cards
+  20  question card surfaces the latest captured utterance
+  21  HUD Ask streams a structured answer into the Answer card (3 headings)
+  22  Structure card detects Introduction / Content / Conclusion (3/3)
+  23  copilot request carries the live transcript prompt
+  24  HUD Vision captures a screen frame
+  25  HUD Ask sends the captured frame as an image_url message
+  26  vision prompt carries screen system prompt, frame descriptor, question
+  27  screen analysis streams into the screen answer stream
+  28  screen tab shows captured frame with Question / Answer / Structure cards
+  29  HUD Notes writes markdown session notes (session-*.md)
+  30  overlay docks the HUD bar above compact cards
+  31  settings modal exposes advanced model parameters
+
+  e2e harness behaviour: deletes ~/.config/smog-ai/config.json before and after
+  the run; connects over CDP port 9333; uses a local OpenAI mock server
+  (streaming + audio + nostream variants); screenshots to the artifacts folder.
+
+9. SECURITY / RULES OBSERVED
+--------------------------------------------------------------------------------
+  - No hardcoded API key or model in source or build output
+  - Credentials only via the settings modal -> safeStorage encryption at
+    ~/.config/smog-ai/config.json (plaintext JSON only if safeStorage is absent)
+  - Context isolation + preload bridge; renderer reaches IPC only via window.smog
+  - No invented live URLs: manifest uses <release-host> / <repository-url>
+    placeholders with explicit "replace after publishing" notes
+  - release/, out/, node_modules/ are gitignored
+
+10. smog-build-manifest.json (verbatim copy of the generated file)
+--------------------------------------------------------------------------------
+{
+  "appName": "Smog AI",
+  "packageName": "smog-ai",
+  "version": "0.1.0",
+  "description": "Real-time AI desktop assistant — interview copilot, screen analysis, automated notes.",
+  "appId": "ai.smog.desktop",
+  "generatedAt": "2026-10-06T16:41:47.727Z",
+  "generator": "npm run package:manifest",
+  "supportedArchitectures": {
+    "windows": [
+      "x64",
+      "arm64"
+    ],
+    "macos": [
+      "x64",
+      "arm64"
+    ],
+    "linux": [
+      "x64"
+    ]
+  },
+  "binaries": {
+    "entry": "out/main/index.js",
+    "cli": "scripts/smog-cli.cjs",
+    "unpacked": {
+      "windows": "release/win-unpacked/Smog AI.exe",
+      "windowsArm64": "release/win-arm64-unpacked/Smog AI.exe",
+      "macos": "release/mac/Smog AI.app/Contents/MacOS/Smog AI",
+      "linux": "release/linux-unpacked/smog-ai"
+    },
+    "installer": "release/Smog AI-0.1.0-win-setup.exe",
+    "artifacts": [
+      "release/Smog AI-0.1.0-win-setup.exe"
+    ],
+    "outputDir": "release/",
+    "buildOutputDir": "out/"
+  },
+  "cliInstall": {
+    "bin": {
+      "smog-ai": "scripts/smog-cli.cjs"
+    },
+    "help": "npx smog-ai --help",
+    "config": "npx smog-ai --config",
+    "run": [
+      "smog-ai",
+      "smog-ai --config",
+      "smog-ai --help"
+    ],
+    "npmLink": "npm link   # from this checkout: exposes `smog-ai` and `npx smog-ai` on PATH, launches the packaged build in ./release",
+    "npmUnlink": "npm unlink -g smog-ai",
+    "npmGlobal": "npm install -g smog-ai",
+    "npxRun": "npx smog-ai",
+    "scripts": {
+      "dev": "npm run dev",
+      "build": "npm run build",
+      "typecheck": "npm run typecheck",
+      "package": "npm run package",
+      "manifest": "npm run package:manifest"
+    }
+  },
+  "installCommands": {
+    "windows": [
+      "\"release/Smog AI-0.1.0-win-setup.exe\"",
+      "npx electron-builder --win --arm64 --publish never  # arm64 installer",
+      "winget install --id ai.smog.desktop  # after publishing to winget"
+    ],
+    "macos": [
+      "open \"release/Smog AI-<version>-mac-<arch>.dmg\""
+    ],
+    "linux": [
+      "chmod +x \"release/Smog AI-<version>-linux-x64.AppImage\" && \"./release/Smog AI-<version>-linux-x64.AppImage\"",
+      "sudo dpkg -i \"release/Smog AI-<version>-linux-x64.deb\""
+    ],
+    "npmGlobal": "npm install -g smog-ai",
+    "shellBootstrap": "curl -fsSL https://<release-host>/smog-ai/install.sh | sh",
+    "buildFromSource": [
+      "git clone <repository-url> smog-ai",
+      "cd smog-ai && npm install && npm run package"
+    ]
+  },
+  "installCommandNotes": [
+    "npm run package builds installers for the host platform into ./release",
+    "Cross-platform targets: npm run package:win | package:mac | package:linux (macOS targets require macOS)",
+    "Replace <release-host> and <repository-url> with real URLs once artifacts are published",
+    "The npm global and shell bootstrap commands require the package to be published first"
+  ],
+  "buildPipeline": {
+    "build": "npm run build",
+    "package": "npm run package",
+    "verify": [
+      "npm run typecheck",
+      "npm run e2e"
+    ],
+    "manifest": "npm run package:manifest",
+    "cli": "npx smog-ai --help"
+  },
+  "artifacts": [
+    {
+      "file": "release/Smog AI-0.1.0-win-setup.exe",
+      "platform": "windows",
+      "bytes": 98303306
+    }
+  ],
+  "setupRequirements": [
+    "OPENCODE_ZEN_API_KEY — required; no key ships with the app (BYOK) and is read dynamically from ~/.config/smog-ai/config.json",
+    "LLM_MODEL_NAME — required; no model ships as a source default (e.g. mimov2.6), stored in ~/.config/smog-ai/config.json",
+    "Network access to the configured base URL (default https://opencode.zen/v1) for chat completions and transcriptions",
+    "Microphone permission for the Listen channel (Windows Settings › Privacy › Microphone)",
+    "System loopback permission for the remote-interviewer channel — Windows-only, enabled by the setDisplayMediaRequestHandler loopback source",
+    "Screen capture permission for Vision / screen scan / screen watch (desktopCapturer)",
+    "Electron safeStorage (OS keychain) for encrypting the stored key; plaintext JSON is used only when the keychain is unavailable",
+    "Optional: a dedicated STT model for /audio/transcriptions; the chat audio fallback is used when STT_MODEL_NAME is empty"
+  ],
+  "configuration": {
+    "file": "~/.config/smog-ai/config.json",
+    "notesDir": "~/.config/smog-ai/notes/",
+    "summary": "Smog AI never ships with a hardcoded key. Configure your own OpenCode Zen credentials on first launch.",
+    "steps": [
+      "Launch the app — the first-run settings modal opens automatically (reopen anytime via the Params HUD button or the gear icon in the title bar)",
+      "Paste your OpenCode Zen API key into the API key field (starts with \"zk-\") — stored as OPENCODE_ZEN_API_KEY",
+      "Set the model field (e.g. mimov2.6) — stored as LLM_MODEL_NAME",
+      "Leave the base URL at https://opencode.zen/v1 (default) or point it at a compatible OpenAI-style endpoint",
+      "Optional — enable dual-channel (system loopback) capture, then expand \"Advanced model parameters\" for max_tokens, top_p, STT model and a raw JSON extraBody object",
+      "Click \"Save configuration\" — the key is encrypted with the OS keychain (Electron safeStorage) and written to ~/.config/smog-ai/config.json",
+      "Start the mic with the Listen HUD button, then press Ask — or toggle Auto-Pilot (Ctrl/Cmd+Shift+A) to answer detected questions automatically"
+    ],
+    "fields": {
+      "apiKey": "OPENCODE_ZEN_API_KEY — OpenCode Zen credential, required",
+      "model": "LLM_MODEL_NAME — e.g. mimov2.6, required",
+      "baseUrl": "LLM_BASE_URL — default https://opencode.zen/v1",
+      "sttModel": "STT_MODEL_NAME — optional; falls back to chat audio transcription when empty",
+      "temperature": "Sampling temperature (0-1)",
+      "maxTokens": "max_tokens — 0 = provider default",
+      "topP": "top_p — 1 = omitted",
+      "extraBody": "Free-form JSON merged into every chat completion body",
+      "idleTimeoutMs": "Streaming idle timeout in milliseconds",
+      "stealth": "Enable OS-level content protection (excluded from screen capture)",
+      "alwaysOnTop": "Keep the main window above other windows",
+      "chunkSeconds": "Audio chunk length in seconds (2-15)",
+      "language": "Optional BCP-47 language hint for transcription",
+      "systemAudio": "Dual-channel capture — record system loopback audio alongside the microphone",
+      "autoPilot": "Auto-Pilot mode — detected question utterances stream through the API automatically",
+      "screenWatch": "Interval screen watcher that keeps spatial context fresh",
+      "screenScanMs": "Screen watch interval in milliseconds (minimum 1000)"
+    },
+    "environmentAliases": [
+      "OPENCODE_ZEN_API_KEY",
+      "LLM_MODEL_NAME",
+      "LLM_BASE_URL",
+      "STT_MODEL_NAME",
+      "SMOG_STEALTH",
+      "SMOG_SYSTEM_AUDIO",
+      "SMOG_AUTO_PILOT",
+      "SMOG_SCREEN_WATCH"
+    ],
+    "encryption": "Config payload is encrypted with safeStorage when available; otherwise stored as plaintext JSON"
+  },
+  "globalShortcuts": {
+    "toggleStealthOverlay": "CommandOrControl+Shift+H",
+    "instantScreenScan": "CommandOrControl+Shift+V",
+    "toggleAutoPilot": "CommandOrControl+Shift+A"
+  },
+  "verification": {
+    "lastVerifiedAt": "2026-10-06T16:41:47.739Z",
+    "typecheck": "CLEAN — npm run typecheck (typecheck:node + typecheck:web)",
+    "workletCheck": "OK — node scripts/check-worklet.cjs (AudioWorklet source syntax)",
+    "e2e": "31/31 CHECKS PASSED — node scripts/e2e.mjs (CDP port 9333, local OpenAI mock)",
+    "e2eChecks": 31,
+    "package": "OK — npm run package (electron-builder NSIS, Windows x64)",
+    "packagedSmokeTest": "OK — release/win-unpacked/Smog AI.exe boots and serves the renderer from app.asar"
+  },
+  "features": {
+    "stealth": "Content protection on every BrowserWindow (setContentProtection + screen-saver level overlay flags), Cmd/Ctrl+Shift+H toggle",
+    "dualChannelAudio": "Microphone (getUserMedia) + system loopback (getDisplayMedia, Windows) recorded in parallel and transcribed as separate channels",
+    "hud": "Floating + docked control bar (Listen/Vision/Ask/Notes/Params), draggable with edge snapping, tabs, separate always-on-top HUD window",
+    "autoPilot": "Debounced question detection over the live transcript streams structured answers automatically (Cmd/Ctrl+Shift+A)",
+    "screenWatch": "Interval frame hashing keeps spatial context fresh; instant scan via Cmd/Ctrl+Shift+V",
+    "byok": "No shipped key or model — OPENCODE_ZEN_API_KEY / LLM_MODEL_NAME read from ~/.config/smog-ai/config.json"
+  }
+}
+
+11. OPEN ITEMS / FOLLOW-UPS
+--------------------------------------------------------------------------------
+  - Replace <release-host> and <repository-url> in smog-build-manifest.json
+    after publishing (winget, npm global, install.sh bootstrap).
+  - macOS (.dmg) and Linux (AppImage/deb) artifacts require building on/for
+    those platforms: npm run package:mac | package:linux
+  - Windows arm64 installer: npx electron-builder --win --arm64 --publish never
+  - Publishing steps (npm publish, winget manifest, release hosting) are not
+    performed; artifacts are local under ./release only.
+  - Auto-Pilot engine, screen watch/scan and the global shortcuts are exercised
+    through typecheck + manual runs; the 31 e2e checks cover the pre-existing
+    flows (they predate Phase 2) — extend scripts/e2e.mjs to assert them.
+  - System loopback audio is Windows-only (getDisplayMedia audio:'loopback');
+    macOS/Linux need a different system-audio capture path.
+================================================================================

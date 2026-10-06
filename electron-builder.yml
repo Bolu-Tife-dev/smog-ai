@@ -1,0 +1,63 @@
+appId: ai.smog.desktop
+productName: Smog AI
+copyright: Copyright © 2026 Smog AI
+
+directories:
+  output: release
+  buildResources: build
+
+files:
+  - out/**/*
+  - package.json
+
+asar: true
+
+win:
+  artifactName: ${productName}-${version}-win-${arch}.${ext}
+  target:
+    - target: nsis
+      arch:
+        - x64
+
+nsis:
+  oneClick: true
+  perMachine: false
+  allowToChangeInstallationDirectory: false
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Smog AI
+  artifactName: ${productName}-${version}-win-setup.${ext}
+
+mac:
+  category: public.app-category.productivity
+  darkModeSupport: true
+  artifactName: ${productName}-${version}-mac-${arch}.${ext}
+  target:
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+
+dmg:
+  artifactName: ${productName}-${version}-mac-${arch}.${ext}
+
+linux:
+  category: Utility
+  maintainer: smog
+  synopsis: Real-time AI desktop assistant
+  artifactName: ${productName}-${version}-linux-${arch}.${ext}
+  target:
+    - target: appimage
+      arch:
+        - x64
+    - target: deb
+      arch:
+        - x64
+
+appImage:
+  artifactName: ${productName}-${version}-linux-${arch}.${ext}
+
+deb:
+  artifactName: ${productName}-${version}-linux-${arch}.${ext}
+
+publish: null

@@ -1,0 +1,139 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-mono: 'Cascadia Code', 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+  --color-smog-bg: #0a0d12;
+  --color-smog-panel: #11151c;
+  --color-smog-line: #1e2430;
+  --color-smog-accent: #38bdf8;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: transparent;
+  color: #e4e7ec;
+  font-family: var(--font-sans);
+  overflow: hidden;
+  user-select: none;
+}
+
+.window-shell {
+  background: color-mix(in srgb, var(--color-smog-bg) 96%, transparent);
+  border: 1px solid var(--color-smog-line);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 24px 60px rgb(0 0 0 / 0.55);
+}
+
+.drag-region {
+  -webkit-app-region: drag;
+}
+
+.no-drag {
+  -webkit-app-region: no-drag;
+}
+
+.scroller {
+  scrollbar-width: thin;
+  scrollbar-color: #2a3242 transparent;
+}
+
+.scroller::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.scroller::-webkit-scrollbar-thumb {
+  background: #2a3242;
+  border-radius: 8px;
+}
+
+.scroller::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.answer h2 {
+  margin-top: 1rem;
+  margin-bottom: 0.4rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-smog-accent);
+}
+
+.answer h2:first-child {
+  margin-top: 0;
+}
+
+.answer pre {
+  margin: 0.5rem 0;
+  padding: 0.7rem 0.85rem;
+  background: #0b0f15;
+  border: 1px solid var(--color-smog-line);
+  border-radius: 8px;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.answer code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  color: #7dd3fc;
+}
+
+.answer p {
+  margin: 0.45rem 0;
+  line-height: 1.6;
+  user-select: text;
+}
+
+.answer ul,
+.answer ol {
+  margin: 0.45rem 0;
+  padding-left: 1.2rem;
+  line-height: 1.6;
+}
+
+.answer ul {
+  list-style: disc;
+}
+
+.answer ol {
+  list-style: decimal;
+}
+
+.answer li {
+  margin: 0.18rem 0;
+  user-select: text;
+}
+
+.answer blockquote {
+  margin: 0.5rem 0;
+  padding-left: 0.75rem;
+  border-left: 3px solid var(--color-smog-line);
+  color: #9aa4b5;
+}
+
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+
+.live-dot {
+  animation: pulse-dot 1.2s ease-in-out infinite;
+}
