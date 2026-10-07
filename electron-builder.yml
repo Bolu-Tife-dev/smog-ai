@@ -13,7 +13,7 @@ files:
 asar: true
 
 win:
-  artifactName: ${productName}-${version}-win-${arch}.${ext}
+  artifactName: Smog-AI-win-${arch}.${ext}
   target:
     - target: nsis
       arch:
@@ -26,12 +26,12 @@ nsis:
   createDesktopShortcut: true
   createStartMenuShortcut: true
   shortcutName: Smog AI
-  artifactName: ${productName}-${version}-win-setup.${ext}
+  artifactName: Smog-AI-win-setup.${ext}
 
 mac:
   category: public.app-category.productivity
   darkModeSupport: true
-  artifactName: ${productName}-${version}-mac-${arch}.${ext}
+  artifactName: Smog-AI-mac-${arch}.${ext}
   target:
     - target: dmg
       arch:
@@ -39,13 +39,13 @@ mac:
         - arm64
 
 dmg:
-  artifactName: ${productName}-${version}-mac-${arch}.${ext}
+  artifactName: Smog-AI-mac-${arch}.${ext}
 
 linux:
   category: Utility
   maintainer: smog
   synopsis: Real-time AI desktop assistant
-  artifactName: ${productName}-${version}-linux-${arch}.${ext}
+  artifactName: Smog-AI-linux-${arch}.${ext}
   target:
     - target: appimage
       arch:
@@ -55,9 +55,9 @@ linux:
         - x64
 
 appImage:
-  artifactName: ${productName}-${version}-linux-${arch}.${ext}
+  artifactName: Smog-AI-linux-${arch}.${ext}
 
 deb:
-  artifactName: ${productName}-${version}-linux-${arch}.${ext}
+  artifactName: Smog-AI-linux-${arch}.${ext}
 
 publish: null

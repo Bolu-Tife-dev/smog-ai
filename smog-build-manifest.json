@@ -1,10 +1,10 @@
 {
   "appName": "Smog AI",
   "packageName": "smog-ai",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Real-time AI desktop assistant — interview copilot, screen analysis, automated notes.",
   "appId": "ai.smog.desktop",
-  "generatedAt": "2026-10-07T15:08:38.466Z",
+  "generatedAt": "2026-10-07T16:43:54.807Z",
   "generator": "npm run package:manifest",
   "supportedArchitectures": {
     "windows": [
@@ -28,9 +28,9 @@
       "macos": "release/mac/Smog AI.app/Contents/MacOS/Smog AI",
       "linux": "release/linux-unpacked/smog-ai"
     },
-    "installer": "release/Smog AI-0.1.0-win-setup.exe",
+    "installer": "release/Smog-AI-win-setup.exe",
     "artifacts": [
-      "release/Smog AI-0.1.0-win-setup.exe"
+      "release/Smog-AI-win-setup.exe"
     ],
     "outputDir": "release/",
     "buildOutputDir": "out/"
@@ -60,18 +60,18 @@
   },
   "installCommands": {
     "windows": [
-      "\"release/Smog AI-0.1.0-win-setup.exe\"",
+      "\"release/Smog-AI-win-setup.exe\"",
       "https://github.com/Bolu-Tife-dev/smog-ai/releases/latest  # download page with the published NSIS installer",
       "npx electron-builder --win --arm64 --publish never  # arm64 installer",
       "winget install --id ai.smog.desktop  # after publishing to winget"
     ],
     "macos": [
       "https://github.com/Bolu-Tife-dev/smog-ai/releases/latest  # download the DMG (Intel or Apple Silicon)",
-      "open \"release/Smog AI-<version>-mac-<arch>.dmg\""
+      "open \"release/Smog-AI-mac-<arch>.dmg\""
     ],
     "linux": [
-      "chmod +x \"release/Smog AI-<version>-linux-x64.AppImage\" && \"./release/Smog AI-<version>-linux-x64.AppImage\"",
-      "sudo dpkg -i \"release/Smog AI-<version>-linux-x64.deb\""
+      "chmod +x \"release/Smog-AI-linux-<arch>.AppImage\" && \"./release/Smog-AI-linux-<arch>.AppImage\"",
+      "sudo dpkg -i \"release/Smog-AI-linux-<arch>.deb\""
     ],
     "npmGlobal": "npm install -g smog-ai",
     "shellBootstrap": "curl -fsSL https://<release-host>/smog-ai/install.sh | sh",
@@ -98,9 +98,9 @@
   },
   "artifacts": [
     {
-      "file": "release/Smog AI-0.1.0-win-setup.exe",
+      "file": "release/Smog-AI-win-setup.exe",
       "platform": "windows",
-      "bytes": 98292440
+      "bytes": 98292593
     }
   ],
   "setupRequirements": [
@@ -165,7 +165,7 @@
     "pushToAsk": "CommandOrControl+Alt+Space (hold to open the quick-ask prompt)"
   },
   "verification": {
-    "lastVerifiedAt": "2026-10-07T15:08:38.504Z",
+    "lastVerifiedAt": "2026-10-07T16:43:54.882Z",
     "typecheck": "CLEAN — npm run typecheck (typecheck:node + typecheck:web)",
     "workletCheck": "OK — node scripts/check-worklet.cjs (AudioWorklet source syntax)",
     "e2e": "38/38 CHECKS PASSED — node scripts/e2e.mjs (CDP port 9333, local OpenAI mock)",

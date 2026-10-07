@@ -82,18 +82,18 @@ const manifest = {
     windows: [
       windowsInstaller
         ? `"${windowsInstaller}"`
-        : 'release\\Smog AI-<version>-win-setup.exe',
+        : 'release\\Smog-AI-win-setup.exe',
       'https://github.com/Bolu-Tife-dev/smog-ai/releases/latest  # download page with the published NSIS installer',
       'npx electron-builder --win --arm64 --publish never  # arm64 installer',
       'winget install --id ai.smog.desktop  # after publishing to winget'
     ],
     macos: [
       'https://github.com/Bolu-Tife-dev/smog-ai/releases/latest  # download the DMG (Intel or Apple Silicon)',
-      'open "release/Smog AI-<version>-mac-<arch>.dmg"'
+      'open "release/Smog-AI-mac-<arch>.dmg"'
     ],
     linux: [
-      'chmod +x "release/Smog AI-<version>-linux-x64.AppImage" && "./release/Smog AI-<version>-linux-x64.AppImage"',
-      'sudo dpkg -i "release/Smog AI-<version>-linux-x64.deb"'
+      'chmod +x "release/Smog-AI-linux-<arch>.AppImage" && "./release/Smog-AI-linux-<arch>.AppImage"',
+      'sudo dpkg -i "release/Smog-AI-linux-<arch>.deb"'
     ],
     npmGlobal: 'npm install -g smog-ai',
     shellBootstrap: 'curl -fsSL https://<release-host>/smog-ai/install.sh | sh',
