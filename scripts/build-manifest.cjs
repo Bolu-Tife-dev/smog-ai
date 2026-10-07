@@ -83,23 +83,30 @@ const manifest = {
       windowsInstaller
         ? `"${windowsInstaller}"`
         : 'release\\Smog AI-<version>-win-setup.exe',
+      'https://github.com/Bolu-Tife-dev/smog-ai/releases/latest  # download page with the published NSIS installer',
       'npx electron-builder --win --arm64 --publish never  # arm64 installer',
       'winget install --id ai.smog.desktop  # after publishing to winget'
     ],
-    macos: ['open "release/Smog AI-<version>-mac-<arch>.dmg"'],
+    macos: [
+      'https://github.com/Bolu-Tife-dev/smog-ai/releases/latest  # download the DMG (Intel or Apple Silicon)',
+      'open "release/Smog AI-<version>-mac-<arch>.dmg"'
+    ],
     linux: [
       'chmod +x "release/Smog AI-<version>-linux-x64.AppImage" && "./release/Smog AI-<version>-linux-x64.AppImage"',
       'sudo dpkg -i "release/Smog AI-<version>-linux-x64.deb"'
     ],
     npmGlobal: 'npm install -g smog-ai',
     shellBootstrap: 'curl -fsSL https://<release-host>/smog-ai/install.sh | sh',
-    buildFromSource: ['git clone <repository-url> smog-ai', 'cd smog-ai && npm install && npm run package']
+    buildFromSource: [
+      'git clone https://github.com/Bolu-Tife-dev/smog-ai smog-ai',
+      'cd smog-ai && npm install && npm run package'
+    ]
   },
   installCommandNotes: [
     'npm run package builds installers for the host platform into ./release',
     'Cross-platform targets: npm run package:win | package:mac | package:linux (macOS targets require macOS)',
-    'Replace <release-host> and <repository-url> with real URLs once artifacts are published',
-    'The npm global and shell bootstrap commands require the package to be published first'
+    'Published installers live on https://github.com/Bolu-Tife-dev/smog-ai/releases — push a v* tag and the Release workflow (.github/workflows/release.yml) builds Windows EXE + macOS DMG and attaches them automatically',
+    'Replace <release-host> for the shell bootstrap once install.sh is hosted'
   ],
   buildPipeline: {
     build: 'npm run build',

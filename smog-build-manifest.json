@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "description": "Real-time AI desktop assistant — interview copilot, screen analysis, automated notes.",
   "appId": "ai.smog.desktop",
-  "generatedAt": "2026-10-07T14:56:52.510Z",
+  "generatedAt": "2026-10-07T15:08:38.466Z",
   "generator": "npm run package:manifest",
   "supportedArchitectures": {
     "windows": [
@@ -61,10 +61,12 @@
   "installCommands": {
     "windows": [
       "\"release/Smog AI-0.1.0-win-setup.exe\"",
+      "https://github.com/Bolu-Tife-dev/smog-ai/releases/latest  # download page with the published NSIS installer",
       "npx electron-builder --win --arm64 --publish never  # arm64 installer",
       "winget install --id ai.smog.desktop  # after publishing to winget"
     ],
     "macos": [
+      "https://github.com/Bolu-Tife-dev/smog-ai/releases/latest  # download the DMG (Intel or Apple Silicon)",
       "open \"release/Smog AI-<version>-mac-<arch>.dmg\""
     ],
     "linux": [
@@ -74,15 +76,15 @@
     "npmGlobal": "npm install -g smog-ai",
     "shellBootstrap": "curl -fsSL https://<release-host>/smog-ai/install.sh | sh",
     "buildFromSource": [
-      "git clone <repository-url> smog-ai",
+      "git clone https://github.com/Bolu-Tife-dev/smog-ai smog-ai",
       "cd smog-ai && npm install && npm run package"
     ]
   },
   "installCommandNotes": [
     "npm run package builds installers for the host platform into ./release",
     "Cross-platform targets: npm run package:win | package:mac | package:linux (macOS targets require macOS)",
-    "Replace <release-host> and <repository-url> with real URLs once artifacts are published",
-    "The npm global and shell bootstrap commands require the package to be published first"
+    "Published installers live on https://github.com/Bolu-Tife-dev/smog-ai/releases — push a v* tag and the Release workflow (.github/workflows/release.yml) builds Windows EXE + macOS DMG and attaches them automatically",
+    "Replace <release-host> for the shell bootstrap once install.sh is hosted"
   ],
   "buildPipeline": {
     "build": "npm run build",
@@ -163,7 +165,7 @@
     "pushToAsk": "CommandOrControl+Alt+Space (hold to open the quick-ask prompt)"
   },
   "verification": {
-    "lastVerifiedAt": "2026-10-07T14:56:52.512Z",
+    "lastVerifiedAt": "2026-10-07T15:08:38.504Z",
     "typecheck": "CLEAN — npm run typecheck (typecheck:node + typecheck:web)",
     "workletCheck": "OK — node scripts/check-worklet.cjs (AudioWorklet source syntax)",
     "e2e": "38/38 CHECKS PASSED — node scripts/e2e.mjs (CDP port 9333, local OpenAI mock)",
