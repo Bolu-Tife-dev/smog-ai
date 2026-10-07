@@ -80,6 +80,17 @@ export function copilotMessages(entries: TranscriptEntry[]): ChatMessage[] {
   ]
 }
 
+export function questionMessages(entries: TranscriptEntry[], question: string): ChatMessage[] {
+  const typed = question.trim()
+  return [
+    { role: 'system', content: COPILOT_SYSTEM },
+    {
+      role: 'user',
+      content: `Live interview transcript:\n\n${formatTranscript(entries)}\n\nTyped question: ${typed}\n\nAnswer the typed question in the context of the transcript. Produce the answer now.`
+    }
+  ]
+}
+
 export function autopilotMessages(entries: TranscriptEntry[]): ChatMessage[] {
   return [
     { role: 'system', content: AUTOPILOT_SYSTEM },

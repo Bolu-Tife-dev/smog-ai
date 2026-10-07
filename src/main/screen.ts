@@ -41,6 +41,53 @@ function qualityToJpeg(quality: number | undefined): number {
   return Math.max(1, Math.min(100, Math.round(value * 100)))
 }
 
+async function captureActiveWindow(
+  options: CaptureOptions,
+  display: Electron.Display,
+  thumbnailSize: { width: number; height: number },
+  labels: DisplayInfo[]
+): Promise<ScreenFrame | null> {
+  let sources: Electron.DesktopCapturerSource[]
+  try {
+    sources = await desktopCapturer.getSources({
+      types: ['window'],
+      thumbnailSize,
+      fetchWindowIcons: false
+    })
+  } catch {
+    return null
+  }
+  const usable = sources.filter((candidate) => {
+    const size = candidate.thumbnail.getSize()
+    if (size.width < 64 || size.height < 64) return false
+    return !/^smog ai/i.test(candidate.name)
+  })
+  const source = usable[0] ?? null
+  if (!source) return null
+
+  const image = source.thumbnail
+  const size = image.getSize()
+  const format: NonNullable<CaptureOptions['format']> = options.format ?? DEFAULT_FORMAT
+  const dataUrl =
+    format === 'png'
+      ? image.toDataURL()
+      : `data:image/jpeg;base64,${image.toJPEG(qualityToJpeg(options.quality)).toString('base64')}`
+  const label = labels.find((entry) => entry.id === display.id)?.label ?? `Display ${display.id}`
+
+  return {
+    dataUrl,
+    width: size.width,
+    height: size.height,
+    capturedAt: Date.now(),
+    displayId: display.id,
+    displayLabel: label,
+    windowTitle: source.name,
+    scaleFactor: display.scaleFactor,
+    format,
+    bytes: dataUrl.length
+  }
+}
+
 export async function captureScreen(options: CaptureOptions = {}): Promise<ScreenFrame> {
   const display = resolveDisplay(options.displayId)
   const pixelWidth = Math.round(display.size.width * display.scaleFactor)
@@ -50,6 +97,13 @@ export async function captureScreen(options: CaptureOptions = {}): Promise<Scree
   const thumbnailSize = {
     width: Math.max(320, Math.round(pixelWidth * scale)),
     height: Math.max(200, Math.round(pixelHeight * scale))
+  }
+
+  const labels = listDisplays()
+
+  if (options.activeWindow) {
+    const active = await captureActiveWindow(options, display, thumbnailSize, labels)
+    if (active) return active
   }
 
   const sources = await desktopCapturer.getSources({
@@ -69,7 +123,6 @@ export async function captureScreen(options: CaptureOptions = {}): Promise<Scree
       ? image.toDataURL()
       : `data:image/jpeg;base64,${image.toJPEG(qualityToJpeg(options.quality)).toString('base64')}`
 
-  const labels = listDisplays()
   const label = labels.find((entry) => entry.id === display.id)?.label ?? `Display ${display.id}`
 
   return {

@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { useStore } from '../store'
 import { AnswerCard, QuestionCard, StructureCard, extractQuestion, type QuestionSource } from './Cards'
 import { HudBar } from './HudBar'
+import { QuickAsk } from './QuickAsk'
 import { CloseIcon } from './icons'
 
 export function OverlayApp() {
@@ -64,6 +65,7 @@ export function OverlayApp() {
       )}
 
       <div className="flex min-h-0 flex-1 flex-col gap-2 p-2">
+        <QuickAsk compact />
         <QuestionCard source={question} compact />
         <AnswerCard
           compact

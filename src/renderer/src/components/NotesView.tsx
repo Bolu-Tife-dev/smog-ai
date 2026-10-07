@@ -9,6 +9,8 @@ export function NotesView() {
   const [result, setResult] = useState<GenerateNotesResult | null>(null)
   const [files, setFiles] = useState<NoteFile[]>([])
   const [busy, setBusy] = useState(false)
+  const [exporting, setExporting] = useState<'pdf' | 'markdown' | null>(null)
+  const [exportedPath, setExportedPath] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
 
@@ -49,6 +51,25 @@ export function NotesView() {
     setTimeout(() => setCopied(false), 1500)
   }
 
+  async function exportAs(kind: 'pdf' | 'markdown') {
+    if (!result) return
+    setExporting(kind)
+    setError(null)
+    try {
+      const channel = kind === 'pdf' ? 'notes:exportPdf' : 'notes:exportMarkdown'
+      const path = await window.smog.invoke<string>(channel, {
+        content: result.content,
+        saveDialog: true
+      })
+      setExportedPath(path)
+      await refreshFiles()
+    } catch (err) {
+      setError(String(err))
+    } finally {
+      setExporting(null)
+    }
+  }
+
   return (
     <div className="grid h-full min-h-0 grid-cols-[260px_1fr]">
       <aside className="flex min-h-0 flex-col border-r border-smog-line">
@@ -85,10 +106,28 @@ export function NotesView() {
           <span className="text-xs font-semibold tracking-wider text-zinc-400">SESSION NOTES</span>
           {result && (
             <>
-              <span className="rounded bg-white/5 px-1.5 py-0.5 text-[10px] text-zinc-500">{result.path}</span>
+              <span className="rounded bg-white/5 px-1.5 py-0.5 text-[10px] text-zinc-500">
+                {exportedPath ?? result.path}
+              </span>
+              <button
+                onClick={() => void exportAs('pdf')}
+                disabled={exporting !== null}
+                title="Export these notes as a PDF file"
+                className="ml-auto flex items-center gap-1.5 rounded-lg bg-amber-500/15 px-2 py-1 text-[11px] font-semibold text-amber-300 transition hover:bg-amber-500/25 disabled:opacity-40"
+              >
+                {exporting === 'pdf' ? 'Exporting…' : 'Export PDF'}
+              </button>
+              <button
+                onClick={() => void exportAs('markdown')}
+                disabled={exporting !== null}
+                title="Save these notes as a Markdown file"
+                className="flex items-center gap-1.5 rounded-lg bg-sky-500/15 px-2 py-1 text-[11px] font-semibold text-sky-300 transition hover:bg-sky-500/25 disabled:opacity-40"
+              >
+                {exporting === 'markdown' ? 'Saving…' : 'Export Markdown'}
+              </button>
               <button
                 onClick={() => void copy()}
-                className="ml-auto flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] text-zinc-400 transition hover:bg-white/5"
+                className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] text-zinc-400 transition hover:bg-white/5"
               >
                 <CopyIcon width={13} height={13} />
                 {copied ? 'Copied' : 'Copy'}

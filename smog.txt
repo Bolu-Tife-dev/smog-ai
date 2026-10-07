@@ -699,3 +699,40 @@ ENVIRONMENT NOTES (not code bugs)
   - System loopback audio is Windows-only (getDisplayMedia audio:'loopback');
     macOS/Linux need a different system-audio capture path.
 ================================================================================
+
+================================================================================
+PHASE 3 - Quick Ask, Push-to-Ask, active-window Vision, notes export, stealth default
+  (typecheck CLEAN, e2e 38/38)
+================================================================================
+  shared/types.ts: ShortcutAction += 'push-to-ask'; ShortcutEvent phase/heldMs;
+    ShortcutFire, SessionAddRequest, NotesExportRequest;
+    IpcChannel += app:triggerShortcut, session:add, notes:exportPdf,
+    notes:exportMarkdown; CaptureOptions.activeWindow; ScreenFrame.windowTitle
+  shared/prompts.ts: questionMessages(entries, question) — transcript + typed
+    question in one prompt (exported through renderer/lib/prompts.ts)
+  main/shortcuts.ts: push-to-ask accelerator CommandOrControl+Alt+Space with
+    hold detection (auto-repeat refresh + release timer emits phase 'down'/'up')
+  main/ipc.ts: push-to-ask handler opens/focuses the overlay prompt and
+    broadcasts phase events; app:triggerShortcut (automation hook);
+    session:add (typed questions join the transcript as role 'user');
+    notes:exportPdf / notes:exportMarkdown (saveDialog optional);
+    screen:scan and HUD vision now capture the active window (activeWindow:true)
+  main/notes.ts: markdownToHtml + PDF styling, exportNotesPdf
+    (hidden BrowserWindow printToPDF, A4) and exportNotesMarkdown;
+    listNotes() lists .md and .pdf; NOTES_SYSTEM frames output as meeting minutes
+  main/screen.ts: captureActiveWindow() — desktopCapturer window sources,
+    Smog AI windows filtered out, windowTitle recorded; falls back to full
+    display capture when no window source is available
+  main/copilot.ts: scanNow reuses the already-captured frame; screen context
+    descriptor reports 'active window "<title>"' when present
+  main/config.ts: stealth DEFAULT true — the app is excluded from screenshots
+    and screen sharing out of the box (setContentProtection / WDA_EXCLUDEFROMCAPTURE)
+  renderer: QuickAsk.tsx (data-quick-ask-input, focus on push-to-ask down,
+    Enter submits) mounted in CopilotView + OverlayApp; store gains askTyped,
+    askSignal, pushAskHeld; HudBar Vision captures the active window;
+    NotesView gains Export PDF / Export Markdown buttons; SettingsModal lists
+    all four global shortcuts
+  scripts/e2e.mjs: +7 checks (stealth default, shortcut map, typed question,
+    push-to-ask phases/focus, active-window vision, PDF export, Markdown
+    export) -> 38/38; scripts/build-manifest.cjs features/globalShortcuts updated
+================================================================================

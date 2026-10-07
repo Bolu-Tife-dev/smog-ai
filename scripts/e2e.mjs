@@ -278,6 +278,26 @@ async function main() {
     )
     record('base URL defaults to OpenCode Zen endpoint', setupResult.baseUrl === 'https://opencode.zen/v1')
 
+    const freshState = await evaluate(
+      mainClient,
+      `window.smog.invoke('app:state').then((s) => ({ stealth: s.stealth, baseUrl: s.config.baseUrl }))`
+    )
+    record(
+      'stealth (hidden from screenshots / screen share) is on by default',
+      freshState.stealth === true,
+      JSON.stringify(freshState)
+    )
+
+    const shortcutMap = await evaluate(mainClient, `window.smog.invoke('app:shortcuts')`)
+    record(
+      'global shortcuts include quick hide / vision / push-to-ask',
+      shortcutMap?.['stealth-overlay'] === 'CommandOrControl+Shift+H' &&
+        shortcutMap?.['screen-scan'] === 'CommandOrControl+Shift+V' &&
+        shortcutMap?.['auto-pilot'] === 'CommandOrControl+Shift+A' &&
+        typeof shortcutMap?.['push-to-ask'] === 'string',
+      JSON.stringify(shortcutMap)
+    )
+
     const stored = JSON.parse(await readFile(configPath, 'utf8'))
     record(
       'config persisted encrypted at ~/.config/smog-ai/config.json',
@@ -593,6 +613,88 @@ async function main() {
     await evaluate(
       mainClient,
       `(() => {
+        window.__llm = { deltas: [], done: null, error: null }
+        return true
+      })()`
+    )
+    const typedSetup = await evaluate(
+      mainClient,
+      `(() => {
+        const input = document.querySelector('[data-quick-ask-input]')
+        if (!input) return { found: false }
+        const desc = Object.getOwnPropertyDescriptor(input.constructor.prototype, 'value')
+        desc.set.call(input, 'What is the time complexity of quicksort?')
+        input.dispatchEvent(new Event('input', { bubbles: true }))
+        input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+        return { found: true }
+      })()`
+    )
+    await waitFor(
+      () => evaluate(mainClient, `window.__llm.done !== null || window.__llm.error !== null`),
+      20000
+    )
+    const typedDone = await evaluate(mainClient, `({ done: window.__llm.done, error: window.__llm.error })`)
+    const typedReqs = mock.requests.filter(
+      (r) =>
+        r.url.endsWith('/chat/completions') &&
+        String(JSON.stringify(r.body?.messages ?? [])).includes('time complexity of quicksort')
+    )
+    const typedEntries = await evaluate(mainClient, `window.smog.invoke('session:entries')`)
+    const typedLast = typedReqs[typedReqs.length - 1]
+    record(
+      'typed question asks the LLM with live transcript context',
+      typedSetup.found === true &&
+        typedDone.error === null &&
+        typedReqs.length >= 1 &&
+        String(typedLast?.body?.messages?.[1]?.content ?? '').includes('Live interview transcript') &&
+        String(typedLast?.body?.messages?.[1]?.content ?? '').includes('Typed question:') &&
+        typedEntries.some((e) => e.role === 'user' && e.text.includes('time complexity')),
+      `${typedReqs.length} requests, userEntry=${typedEntries.some((e) => e.role === 'user')}`
+    )
+
+    await evaluate(
+      mainClient,
+      `(() => {
+        window.__shortcuts = []
+        window.smog.on('event:shortcut', (e) => window.__shortcuts.push(e))
+        return true
+      })()`
+    )
+    const pushDown = await evaluate(mainClient, `window.smog.invoke('app:triggerShortcut', { action: 'push-to-ask' })`)
+    await delay(400)
+    const pushFocusMain = await evaluate(mainClient, `document.activeElement?.id ?? null`)
+    const pushFocusOverlay = overlayClient
+      ? await evaluate(overlayClient, `document.activeElement?.id ?? null`).catch(() => null)
+      : null
+    const pushUp = await evaluate(
+      mainClient,
+      `window.smog.invoke('app:triggerShortcut', { action: 'push-to-ask', phase: 'up', heldMs: 620 })`
+    )
+    const pushEvents = await evaluate(mainClient, `window.__shortcuts`)
+    const pushOverlayOpen = await evaluate(mainClient, `window.smog.invoke('app:state').then((s) => s.overlayOpen)`)
+    const downEvent = pushEvents.find((e) => e.action === 'push-to-ask' && e.phase === 'down')
+    const upEvent = pushEvents.find((e) => e.action === 'push-to-ask' && e.phase === 'up')
+    record(
+      'push-to-ask hold opens a focused prompt and reports hold phases',
+      pushDown === true &&
+        pushUp === true &&
+        !!downEvent &&
+        !!upEvent &&
+        upEvent.heldMs === 620 &&
+        pushOverlayOpen === true &&
+        pushFocusMain === 'quickAsk' &&
+        pushFocusOverlay === 'quickAsk',
+      JSON.stringify({
+        phases: pushEvents.map((e) => `${e.action}:${e.phase ?? 'sync'}:${e.heldMs ?? 0}`),
+        focusMain: pushFocusMain,
+        focusOverlay: pushFocusOverlay,
+        overlayOpen: pushOverlayOpen
+      })
+    )
+
+    await evaluate(
+      mainClient,
+      `(() => {
         document.querySelector('[data-hud="vision"]').click()
         return true
       })()`
@@ -656,6 +758,11 @@ async function main() {
           visionText.includes('Question:') &&
           String(visionReq.body.messages[0]?.content ?? '').includes('screen-context analyst'),
         visionText.slice(0, 70).replace(/\s+/g, ' ')
+      )
+      record(
+        'vision analyzes the active window (bounding-box frame)',
+        visionText.includes('active window "') || visionText.includes('display "'),
+        visionText.slice(0, 90).replace(/\s+/g, ' ')
       )
       await waitFor(
         () => evaluate(mainClient, `window.__llm.done !== null || window.__llm.error !== null`),
@@ -729,6 +836,40 @@ async function main() {
         noteBody.includes('## Introduction'),
       `${latestNote?.name ?? 'none'} · ${noteBody.length} chars`
     )
+
+    const pdfPath = await evaluate(
+      mainClient,
+      `window.smog.invoke('notes:exportPdf', { content: ${JSON.stringify(noteBody)}, saveDialog: false })`
+    )
+    let pdfOk = false
+    let pdfDetail = 'none'
+    try {
+      const buf = await readFile(pdfPath)
+      pdfOk =
+        typeof pdfPath === 'string' &&
+        pdfPath.endsWith('.pdf') &&
+        buf.subarray(0, 4).toString('latin1') === '%PDF' &&
+        buf.length > 800
+      pdfDetail = `${pdfPath} · ${buf.length} bytes`
+    } catch (err) {
+      pdfDetail = String(err)
+    }
+    record('notes export produces a standalone PDF file', pdfOk, pdfDetail)
+
+    const mdPath = await evaluate(
+      mainClient,
+      `window.smog.invoke('notes:exportMarkdown', { content: ${JSON.stringify(noteBody)}, saveDialog: false })`
+    )
+    let mdOk = false
+    let mdDetail = 'none'
+    try {
+      const mdBody = await readFile(mdPath, 'utf8')
+      mdOk = typeof mdPath === 'string' && mdPath.endsWith('.md') && mdBody.trim() === noteBody.trim()
+      mdDetail = `${mdPath} · ${mdBody.length} chars`
+    } catch (err) {
+      mdDetail = String(err)
+    }
+    record('notes export writes a Markdown file', mdOk, mdDetail)
 
     const overlayHud = await evaluate(
       overlayClient,

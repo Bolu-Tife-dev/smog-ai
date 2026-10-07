@@ -130,7 +130,8 @@ const manifest = {
       'Leave the base URL at https://opencode.zen/v1 (default) or point it at a compatible OpenAI-style endpoint',
       'Optional — enable dual-channel (system loopback) capture, then expand "Advanced model parameters" for max_tokens, top_p, STT model and a raw JSON extraBody object',
       'Click "Save configuration" — the key is encrypted with the OS keychain (Electron safeStorage) and written to ~/.config/smog-ai/config.json',
-      'Start the mic with the Listen HUD button, then press Ask — or toggle Auto-Pilot (Ctrl/Cmd+Shift+A) to answer detected questions automatically'
+      'Start the mic with the Listen HUD button, type a question into the quick-ask box (or hold Ctrl/Cmd+Alt+Space anywhere), then press Ask — or toggle Auto-Pilot (Ctrl/Cmd+Shift+A) to answer detected questions automatically',
+      'Export generated notes to PDF or Markdown from the Notes tab; the app is stealth by default (hidden from screenshots and screen shares)'
     ],
     fields: {
       apiKey: 'OPENCODE_ZEN_API_KEY — OpenCode Zen credential, required',
@@ -142,7 +143,7 @@ const manifest = {
       topP: 'top_p — 1 = omitted',
       extraBody: 'Free-form JSON merged into every chat completion body',
       idleTimeoutMs: 'Streaming idle timeout in milliseconds',
-      stealth: 'Enable OS-level content protection (excluded from screen capture)',
+      stealth: 'OS-level content protection — window is excluded from screenshots and screen sharing (default ON)',
       alwaysOnTop: 'Keep the main window above other windows',
       chunkSeconds: 'Audio chunk length in seconds (2-15)',
       language: 'Optional BCP-47 language hint for transcription',
@@ -166,23 +167,28 @@ const manifest = {
   globalShortcuts: {
     toggleStealthOverlay: 'CommandOrControl+Shift+H',
     instantScreenScan: 'CommandOrControl+Shift+V',
-    toggleAutoPilot: 'CommandOrControl+Shift+A'
+    toggleAutoPilot: 'CommandOrControl+Shift+A',
+    pushToAsk: 'CommandOrControl+Alt+Space (hold to open the quick-ask prompt)'
   },
   verification: {
     lastVerifiedAt: new Date().toISOString(),
     typecheck: 'CLEAN — npm run typecheck (typecheck:node + typecheck:web)',
     workletCheck: 'OK — node scripts/check-worklet.cjs (AudioWorklet source syntax)',
-    e2e: '31/31 CHECKS PASSED — node scripts/e2e.mjs (CDP port 9333, local OpenAI mock)',
-    e2eChecks: 31,
+    e2e: '38/38 CHECKS PASSED — node scripts/e2e.mjs (CDP port 9333, local OpenAI mock)',
+    e2eChecks: 38,
     package: 'OK — npm run package (electron-builder NSIS, Windows x64)',
     packagedSmokeTest: 'OK — release/win-unpacked/Smog AI.exe boots and serves the renderer from app.asar'
   },
   features: {
-    stealth: 'Content protection on every BrowserWindow (setContentProtection + screen-saver level overlay flags), Cmd/Ctrl+Shift+H toggle',
+    stealth: 'Content protection on every BrowserWindow (setContentProtection + screen-saver level overlay flags) — ON by default so the app never appears in screenshots or screen shares; Cmd/Ctrl+Shift+H toggles the overlay',
     dualChannelAudio: 'Microphone (getUserMedia) + system loopback (getDisplayMedia, Windows) recorded in parallel and transcribed as separate channels',
     hud: 'Floating + docked control bar (Listen/Vision/Ask/Notes/Params), draggable with edge snapping, tabs, separate always-on-top HUD window',
+    quickAsk: 'On-screen text input (main window + overlay) — typed questions are sent with the full live transcript to OpenCode Zen',
+    pushToAsk: 'Hold Cmd/Ctrl+Alt+Space to open a focused quick-ask prompt anywhere; release keeps it open, Enter queries the AI',
+    notesExport: 'Session minutes, action items and summaries generated via OpenCode Zen; exported to PDF (printToPDF) or Markdown files',
     autoPilot: 'Debounced question detection over the live transcript streams structured answers automatically (Cmd/Ctrl+Shift+A)',
-    screenWatch: 'Interval frame hashing keeps spatial context fresh; instant scan via Cmd/Ctrl+Shift+V',
+    screenWatch: 'Interval frame hashing keeps spatial context fresh; instant active-window scan via Cmd/Ctrl+Shift+V',
+    activeWindowVision: 'Vision captures the foreground window bounding box (desktopCapturer window sources, Smog AI windows excluded) before sending it to the vision model',
     byok: 'No shipped key or model — OPENCODE_ZEN_API_KEY / LLM_MODEL_NAME read from ~/.config/smog-ai/config.json'
   }
 }

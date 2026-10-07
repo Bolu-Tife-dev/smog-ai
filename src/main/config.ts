@@ -21,7 +21,7 @@ const DEFAULTS: SmogConfig = {
   topP: 1,
   extraBody: '',
   idleTimeoutMs: 45000,
-  stealth: false,
+  stealth: true,
   alwaysOnTop: true,
   chunkSeconds: 4,
   language: '',

@@ -8,8 +8,9 @@ const field =
 const label = 'mb-1 block text-[11px] font-semibold uppercase tracking-wider text-zinc-500'
 
 const SHORTCUT_ROWS: Array<{ action: ShortcutAction; title: string }> = [
-  { action: 'stealth-overlay', title: 'Toggle stealth overlay' },
-  { action: 'screen-scan', title: 'Instant screen scan' },
+  { action: 'stealth-overlay', title: 'Toggle stealth overlay (quick hide)' },
+  { action: 'push-to-ask', title: 'Push-to-Ask — hold to open the prompt' },
+  { action: 'screen-scan', title: 'Instant screen scan (vision)' },
   { action: 'auto-pilot', title: 'Toggle Auto-Pilot' }
 ]
 

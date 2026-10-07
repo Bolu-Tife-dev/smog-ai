@@ -6,7 +6,7 @@ export type HudTab = 'listen' | 'vision' | 'ask' | 'notes' | 'params'
 
 export type DockEdge = 'left' | 'right' | 'top' | 'bottom' | 'center' | 'auto'
 
-export type ShortcutAction = 'stealth-overlay' | 'screen-scan' | 'auto-pilot'
+export type ShortcutAction = 'stealth-overlay' | 'screen-scan' | 'auto-pilot' | 'push-to-ask'
 
 export interface SmogConfig {
   apiKey: string
@@ -98,6 +98,23 @@ export interface WindowDockRequest {
 
 export interface ShortcutEvent {
   action: ShortcutAction
+  phase?: 'down' | 'up'
+  heldMs?: number
+}
+
+export interface ShortcutFire {
+  phase: 'down' | 'up'
+  heldMs: number
+}
+
+export interface SessionAddRequest {
+  role: Role
+  text: string
+}
+
+export interface NotesExportRequest {
+  content: string
+  saveDialog?: boolean
 }
 
 export interface TranscribeChunk {
@@ -157,6 +174,7 @@ export interface ScreenFrame {
   capturedAt: number
   displayId?: number
   displayLabel?: string
+  windowTitle?: string
   scaleFactor?: number
   format?: 'png' | 'jpeg'
   bytes?: number
@@ -167,6 +185,7 @@ export interface CaptureOptions {
   format?: 'png' | 'jpeg'
   quality?: number
   maxWidth?: number
+  activeWindow?: boolean
 }
 
 export interface DisplayInfo {
@@ -193,6 +212,7 @@ export type IpcChannel =
   | 'app:state'
   | 'app:openSettings'
   | 'app:shortcuts'
+  | 'app:triggerShortcut'
   | 'config:get'
   | 'config:set'
   | 'window:minimize'
@@ -210,6 +230,7 @@ export type IpcChannel =
   | 'session:stop'
   | 'session:clear'
   | 'session:entries'
+  | 'session:add'
   | 'stt:transcribe'
   | 'stt:transcribeBatch'
   | 'llm:ask'
@@ -219,6 +240,8 @@ export type IpcChannel =
   | 'screen:scan'
   | 'notes:generate'
   | 'notes:list'
+  | 'notes:exportPdf'
+  | 'notes:exportMarkdown'
 
 export type EventChannel =
   | 'event:state'

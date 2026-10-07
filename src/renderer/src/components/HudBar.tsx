@@ -154,7 +154,7 @@ export function HudBar({ variant = 'floating' }: { variant?: HudVariant }) {
       openSettings(true)
       return
     }
-    void captureFrame()
+    void captureFrame({ activeWindow: true })
   }
 
   function onAsk() {

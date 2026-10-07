@@ -12,12 +12,17 @@ import type {
   LlmErrorEvent,
   LlmMode,
   LlmRequest,
+  NotesExportRequest,
   PublicConfig,
+  Role,
   ScreenFrame,
   ScreenScanRequest,
   ScreenWatchRequest,
   ScreenWatchState,
+  SessionAddRequest,
   SessionStatus,
+  ShortcutAction,
+  ShortcutFire,
   SmogConfig,
   TranscribeBatchRequest,
   TranscribeBatchResult,
@@ -29,7 +34,7 @@ import type {
 import { ConfigStore, notesDir } from './config'
 import { CopilotEngine } from './copilot'
 import { LlmError, streamChat } from './llm'
-import { generateNotes, listNotes } from './notes'
+import { exportNotesMarkdown, exportNotesPdf, generateNotes, listNotes } from './notes'
 import { captureScreen, listDisplays, onScreenWatch, startWatch, stopWatch, watchState } from './screen'
 import { Session } from './session'
 import { SHORTCUT_ACCELERATORS, registerShortcuts, type ShortcutHandlers } from './shortcuts'
@@ -58,6 +63,7 @@ export class IpcRuntime {
   private booted = false
   private watchOff: (() => void) | null = null
   private engine: CopilotEngine
+  private shortcutHandlers: ShortcutHandlers | null = null
 
   constructor(
     readonly store: ConfigStore,
@@ -179,10 +185,15 @@ export class IpcRuntime {
   }
 
   private async runScreenScan(request: ScreenScanRequest = {}): Promise<ScreenFrame> {
-    const frame = await captureScreen({ displayId: request.displayId, format: 'jpeg', quality: 0.72 })
+    const frame = await captureScreen({
+      displayId: request.displayId,
+      format: 'jpeg',
+      quality: 0.72,
+      activeWindow: true
+    })
     this.broadcast('event:screen-scan', frame)
     if (this.store.isConfigured() && request.analyze !== false) {
-      this.engine.scanNow(request.displayId).catch((err) => this.setError(err))
+      this.engine.scanNow(request.displayId, frame).catch((err) => this.setError(err))
     }
     return frame
   }
@@ -202,9 +213,27 @@ export class IpcRuntime {
       'auto-pilot': () => {
         this.setAutoPilot(!this.store.get().autoPilot)
         this.broadcast('event:shortcut', { action: 'auto-pilot' })
+      },
+      'push-to-ask': (fire?: ShortcutFire) => {
+        if (fire && fire.phase === 'up') {
+          this.broadcast('event:shortcut', { action: 'push-to-ask', phase: 'up', heldMs: fire.heldMs })
+          return
+        }
+        const opened = toggleOverlay(true)
+        if (opened) applyStealthAll(allWindows(), this.store.get().stealth)
+        this.broadcast('event:shortcut', { action: 'push-to-ask', phase: 'down' })
+        this.broadcastState()
       }
     }
+    this.shortcutHandlers = handlers
     registerShortcuts(handlers)
+  }
+
+  private triggerShortcut(action: ShortcutAction, fire?: ShortcutFire): boolean {
+    const handler = this.shortcutHandlers?.[action]
+    if (!handler) return false
+    handler(fire)
+    return true
   }
 
   private register(): void {
@@ -213,6 +242,14 @@ export class IpcRuntime {
 
     this.handle('app:state', () => this.state())
     this.handle('app:shortcuts', () => SHORTCUT_ACCELERATORS)
+    this.handle('app:triggerShortcut', (_event, req?: { action?: ShortcutAction; phase?: 'down' | 'up'; heldMs?: number }) => {
+      const action = req?.action
+      if (!action || !(action in SHORTCUT_ACCELERATORS)) return false
+      const fire: ShortcutFire | undefined = req?.phase
+        ? { phase: req.phase, heldMs: Number(req.heldMs) || 0 }
+        : undefined
+      return this.triggerShortcut(action, fire)
+    })
     this.handle('app:openSettings', () => {
       focusMainWindow()
       this.broadcast('event:settings', { open: true })
@@ -308,6 +345,12 @@ export class IpcRuntime {
       return this.state()
     })
     this.handle('session:entries', () => this.session.list())
+    this.handle('session:add', (_event, req: SessionAddRequest) => {
+      const role: Role = req?.role === 'speech' || req?.role === 'screen' || req?.role === 'system' ? req.role : 'user'
+      const entry = this.session.add(role, String(req?.text ?? ''))
+      if (!entry) throw new Error('Nothing to add — the entry is empty.')
+      return entry
+    })
 
     this.handle('stt:transcribe', async (_event, req: TranscribeRequest): Promise<TranscribeResult> => {
       const wav = Buffer.from(req.wav)
@@ -404,6 +447,32 @@ export class IpcRuntime {
     })
 
     this.handle('notes:list', () => listNotes())
+
+    this.handle('notes:exportPdf', async (_event, req: NotesExportRequest): Promise<string> => {
+      const content = String(req?.content ?? '').trim()
+      if (!content) throw new Error('Nothing to export — generate notes first.')
+      try {
+        const path = await exportNotesPdf(content, { saveDialog: !!req?.saveDialog })
+        this.clearError()
+        return path
+      } catch (err) {
+        this.setError(err)
+        throw err
+      }
+    })
+
+    this.handle('notes:exportMarkdown', async (_event, req: NotesExportRequest): Promise<string> => {
+      const content = String(req?.content ?? '').trim()
+      if (!content) throw new Error('Nothing to export — generate notes first.')
+      try {
+        const path = await exportNotesMarkdown(content, { saveDialog: !!req?.saveDialog })
+        this.clearError()
+        return path
+      } catch (err) {
+        this.setError(err)
+        throw err
+      }
+    })
   }
 
   private startStream(mode: LlmMode, messages: ChatMessage[]): { requestId: string } {

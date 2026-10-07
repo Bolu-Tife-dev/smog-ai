@@ -20,13 +20,16 @@ export interface CopilotEngineDeps {
 
 function screenParts(frame: ScreenFrame): ContentPart[] {
   const age = Math.max(0, Date.now() - frame.capturedAt)
+  const origin = frame.windowTitle
+    ? `active window "${frame.windowTitle}"`
+    : `display "${frame.displayLabel ?? 'primary'}"`
   return [
     {
       type: 'text',
       text:
-        `Spatial screen context — Screen frame: ${frame.width}x${frame.height}px · display "${
-          frame.displayLabel ?? 'primary'
-        }" · captured ${new Date(frame.capturedAt).toLocaleTimeString()}${age > 5000 ? ` (${Math.round(age / 1000)}s ago)` : ''}.`
+        `Spatial screen context — Screen frame: ${frame.width}x${frame.height}px · ${origin} · captured ${new Date(
+          frame.capturedAt
+        ).toLocaleTimeString()}${age > 5000 ? ` (${Math.round(age / 1000)}s ago)` : ''}.`
     },
     { type: 'image_url', image_url: { url: frame.dataUrl } }
   ]
@@ -106,9 +109,9 @@ export class CopilotEngine {
     if (this.answered.size > 60) this.answered = new Set([...this.answered].slice(-40))
   }
 
-  async scanNow(displayId?: number): Promise<string | null> {
+  async scanNow(displayId?: number, captured?: ScreenFrame): Promise<string | null> {
     if (!this.deps.configured()) return null
-    const frame = await captureScreen({ displayId, format: 'jpeg', quality: 0.72 })
+    const frame = captured ?? (await captureScreen({ displayId, format: 'jpeg', quality: 0.72, activeWindow: true }))
     const messages: ChatMessage[] = [
       { role: 'system', content: SCREEN_SCAN_SYSTEM },
       {

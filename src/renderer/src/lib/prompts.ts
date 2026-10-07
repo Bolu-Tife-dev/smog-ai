@@ -7,5 +7,6 @@ export {
   copilotMessages,
   formatTranscript,
   lastQuestionIndex,
-  looksLikeQuestion
+  looksLikeQuestion,
+  questionMessages
 } from '@shared/prompts'

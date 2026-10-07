@@ -26,7 +26,7 @@ import type {
   TranscriptEntry
 } from '@shared/types'
 import { DualChannelCapture, type MicStats } from './lib/audio'
-import { copilotMessages } from './lib/prompts'
+import { copilotMessages, questionMessages } from './lib/prompts'
 import { buildVisionContext } from './lib/vision'
 
 export interface StreamState {
@@ -55,6 +55,8 @@ interface StoreValue {
   captureDisplayId: number | null
   hudTab: HudTab
   screenWatch: ScreenWatchState
+  askSignal: number
+  pushAskHeld: boolean
   openSettings: (open: boolean) => void
   requestSettings: () => void
   dismissNotice: () => void
@@ -62,10 +64,11 @@ interface StoreValue {
   setHudTab: (tab: HudTab) => void
   setVisionQuestion: (question: string) => void
   setCaptureDisplay: (displayId: number) => void
-  captureFrame: () => Promise<ScreenFrame | null>
+  captureFrame: (options?: { activeWindow?: boolean }) => Promise<ScreenFrame | null>
   scanScreen: () => Promise<ScreenFrame | null>
   askVision: (question?: string) => Promise<void>
   askCopilot: () => Promise<void>
+  askTyped: (question: string) => Promise<void>
   clearSession: () => Promise<void>
   saveConfig: (patch: ConfigPatch) => Promise<void>
   toggleOverlay: (open?: boolean) => Promise<void>
@@ -115,6 +118,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [displays, setDisplays] = useState<DisplayInfo[]>([])
   const [captureDisplayId, setCaptureDisplayId] = useState<number | null>(null)
   const [hudTab, setHudTab] = useState<HudTab>('listen')
+  const [askSignal, setAskSignal] = useState(0)
+  const [pushAskHeld, setPushAskHeld] = useState(false)
   const [screenWatch, setScreenWatch] = useState<ScreenWatchState>({
     running: false,
     intervalMs: 4000,
@@ -155,12 +160,39 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
   }, [patchStream, state])
 
-  const captureFrame = useCallback(async (): Promise<ScreenFrame | null> => {
+  const askTyped = useCallback(
+    async (question: string) => {
+      const typed = question.trim()
+      if (!typed) return
+      const api = requireApi()
+      if (!state || state.needsSetup) {
+        setSettingsOpen(true)
+        return
+      }
+      await api.invoke('session:add', { role: 'user', text: typed })
+      const current = await api.invoke<TranscriptEntry[]>('session:entries')
+      busyRef.current = true
+      patchStream('copilot', { busy: true, error: null, text: '' })
+      try {
+        await api.invoke<LlmResult>('llm:ask', {
+          mode: 'copilot',
+          messages: questionMessages(current, typed)
+        })
+      } catch (err) {
+        busyRef.current = false
+        patchStream('copilot', { busy: false, error: String(err) })
+      }
+    },
+    [patchStream, state]
+  )
+
+  const captureFrame = useCallback(async (options?: { activeWindow?: boolean }): Promise<ScreenFrame | null> => {
     const api = requireApi()
     setCapturing(true)
     try {
       const next = await api.invoke<ScreenFrame>('screen:capture', {
-        displayId: captureDisplayId ?? undefined
+        displayId: captureDisplayId ?? undefined,
+        activeWindow: options?.activeWindow === true
       })
       setFrame(next)
       return next
@@ -198,7 +230,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         return
       }
       let current = frame
-      if (!current) current = await captureFrame()
+      if (!current) current = await captureFrame({ activeWindow: true })
       if (!current) return
       const prompt = (question ?? visionQuestion).trim()
       patchStream('screen', { busy: true, error: null, text: '' })
@@ -291,6 +323,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         if (event?.open) setSettingsOpen(true)
       }),
       api.on<ShortcutEvent>('event:shortcut', (event) => {
+        if (event?.action === 'push-to-ask') {
+          if (event.phase === 'up') {
+            setPushAskHeld(false)
+            return
+          }
+          setPushAskHeld(true)
+          setHudTab('ask')
+          setAskSignal((count) => count + 1)
+          return
+        }
         if (event?.action === 'auto-pilot') setHudTab('ask')
         if (event?.action === 'screen-scan') setHudTab('vision')
         if (event?.action === 'stealth-overlay') setHudTab('listen')
@@ -477,6 +519,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     captureDisplayId,
     hudTab,
     screenWatch,
+    askSignal,
+    pushAskHeld,
     openSettings: setSettingsOpen,
     requestSettings,
     dismissNotice,
@@ -488,6 +532,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     scanScreen,
     askVision,
     askCopilot,
+    askTyped,
     clearSession,
     saveConfig,
     toggleOverlay,

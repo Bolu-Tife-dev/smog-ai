@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useStore } from '../store'
 import { AnswerCard, QuestionCard, StructureCard, extractQuestion } from './Cards'
+import { QuickAsk } from './QuickAsk'
 import { MicIcon, PilotIcon, SparkIcon, StopIcon, TrashIcon } from './icons'
 
 const ROLE_BADGE: Record<string, { label: string; cls: string }> = {
@@ -129,6 +130,7 @@ export function CopilotView() {
       </section>
 
       <section className="flex min-h-0 flex-col gap-3 p-4">
+        <QuickAsk />
         <QuestionCard source={question} />
         <AnswerCard
           scrollRef={answerRef}

@@ -37,7 +37,8 @@ export function frameAgeMs(frame: ScreenFrame): number {
 
 export function describeFrame(frame: ScreenFrame): string {
   const parts = [`${frame.width}×${frame.height}px`]
-  if (frame.displayLabel) parts.push(`display "${frame.displayLabel}"`)
+  if (frame.windowTitle) parts.push(`active window "${frame.windowTitle}"`)
+  else if (frame.displayLabel) parts.push(`display "${frame.displayLabel}"`)
   parts.push(`captured ${new Date(frame.capturedAt).toLocaleTimeString()}`)
   if (frame.format) parts.push(frame.format)
   return parts.join(' · ')
