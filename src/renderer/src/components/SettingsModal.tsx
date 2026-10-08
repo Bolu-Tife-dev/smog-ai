@@ -29,6 +29,7 @@ export function SettingsModal() {
   const { state, saveConfig, openSettings } = useStore()
   const [apiKey, setApiKey] = useState('')
   const [baseUrl, setBaseUrl] = useState('')
+  const [sttBaseUrl, setSttBaseUrl] = useState('')
   const [model, setModel] = useState('')
   const [sttModel, setSttModel] = useState('')
   const [temperature, setTemperature] = useState(0.4)
@@ -53,6 +54,7 @@ export function SettingsModal() {
   useEffect(() => {
     if (!state) return
     setBaseUrl(state.config.baseUrl)
+    setSttBaseUrl(state.config.sttBaseUrl ?? '')
     setModel(state.config.model)
     setSttModel(state.config.sttModel)
     setTemperature(state.config.temperature)
@@ -88,6 +90,7 @@ export function SettingsModal() {
     setError(null)
     const patch: ConfigPatch = {
       baseUrl: baseUrl.trim(),
+      sttBaseUrl: sttBaseUrl.trim(),
       model: model.trim(),
       sttModel: sttModel.trim(),
       temperature,
@@ -160,7 +163,7 @@ export function SettingsModal() {
               <input
                 id="model"
                 className={field}
-                placeholder="mimo-v2.6-flash-free"
+                placeholder="e.g. qwen3.8-flash (Zen) or llama-3.3-70b-versatile (Groq)"
                 value={model}
                 onChange={(e) => setModel(e.target.value)}
               />
@@ -172,7 +175,7 @@ export function SettingsModal() {
               <input
                 id="stt"
                 className={field}
-                placeholder="audio transcription model"
+                placeholder="e.g. whisper-large-v3-turbo (Groq)"
                 value={sttModel}
                 onChange={(e) => setSttModel(e.target.value)}
               />
@@ -189,6 +192,19 @@ export function SettingsModal() {
               placeholder="https://opencode.ai/zen/v1"
               value={baseUrl}
               onChange={(e) => setBaseUrl(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className={label} htmlFor="sttBaseUrl">
+              STT base URL (optional — for whisper; defaults to base URL)
+            </label>
+            <input
+              id="sttBaseUrl"
+              className={field}
+              placeholder="defaults to base URL · Groq: https://api.groq.com/openai/v1"
+              value={sttBaseUrl}
+              onChange={(e) => setSttBaseUrl(e.target.value)}
             />
           </div>
 

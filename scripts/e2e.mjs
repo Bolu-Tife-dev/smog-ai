@@ -44,6 +44,18 @@ function startMockLlm() {
 
       if (url.endsWith('/chat/completions')) {
         const model = body?.model
+        if (model === 'freetier') {
+          res.writeHead(403, { 'content-type': 'application/json' })
+          res.end(
+            JSON.stringify({
+              error: {
+                type: 'FreeTierError',
+                message: "FreeTierError: OpenCode's free tier can only be used from within OpenCode"
+              }
+            })
+          )
+          return
+        }
         if (body?.stream && model === 'nostream') {
           res.writeHead(400, { 'content-type': 'application/json' })
           res.end(JSON.stringify({ error: { message: 'stream=true is not supported by this model' } }))
@@ -211,6 +223,7 @@ async function main() {
   await mkdir(artifacts, { recursive: true })
   await rm(configPath, { force: true })
   const mock = await startMockLlm()
+  const mockStt = await startMockLlm()
 
   const proc = spawn(electronExe, ['--remote-debugging-port=' + PORT, '.'], {
     cwd: root,
@@ -449,6 +462,35 @@ async function main() {
       })
     )
 
+    await evaluate(mainClient, `window.smog.invoke('config:set', { model: 'freetier' })`)
+    await evaluate(
+      mainClient,
+      `(() => {
+        window.__llm = { deltas: [], done: null, error: null }
+        return true
+      })()`
+    )
+    await evaluate(
+      mainClient,
+      `window.smog.invoke('llm:ask', {
+        mode: 'copilot',
+        messages: [{ role: 'user', content: 'Say hello' }]
+      })`
+    )
+    await waitFor(
+      () => evaluate(mainClient, `window.__llm.done !== null || window.__llm.error !== null`),
+      20000
+    )
+    const freeTier = await evaluate(mainClient, `({ error: window.__llm.error })`)
+    record(
+      'FreeTierError maps to an actionable hint',
+      typeof freeTier.error?.message === 'string' &&
+        freeTier.error.message.includes('only works inside the OpenCode app') &&
+        freeTier.error.message.includes('qwen3.8-flash') &&
+        freeTier.error.message.includes('Groq'),
+      freeTier.error?.message?.slice(0, 120)
+    )
+
     await evaluate(mainClient, `window.smog.invoke('config:set', { model: 'nostream' })`)
     await evaluate(
       mainClient,
@@ -506,6 +548,53 @@ async function main() {
         transcribeReq?.model === 'whisper-mock' &&
         sessionAfterStt.some((e) => e.role === 'speech' && e.text === 'mock transcript'),
       `text=${JSON.stringify(sttResult)}`
+    )
+
+    const sttBase = `http://127.0.0.1:${mockStt.port}/openai/v1`
+    const sttBasePatched = await evaluate(
+      mainClient,
+      `window.smog.invoke('config:set', { sttBaseUrl: ${JSON.stringify(sttBase)} })`
+    )
+    const sttResult2 = await evaluate(
+      mainClient,
+      `(() => {
+        const rate = 16000
+        const samples = rate / 4
+        const bytes = new Uint8Array(44 + samples * 2)
+        const view = new DataView(bytes.buffer)
+        const str = (offset, text) => { for (let i = 0; i < text.length; i++) view.setUint8(offset + i, text.charCodeAt(i)) }
+        str(0, 'RIFF'); view.setUint32(4, 36 + samples * 2, true); str(8, 'WAVE'); str(12, 'fmt ')
+        view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true)
+        view.setUint32(24, rate, true); view.setUint32(28, rate * 2, true)
+        view.setUint16(32, 2, true); view.setUint16(34, 16, true)
+        str(36, 'data'); view.setUint32(40, samples * 2, true)
+        return window.smog.invoke('stt:transcribe', { wav: bytes }).then((r) => r.text)
+      })()`
+    )
+    const sttBaseReq = [...mockStt.requests].find((r) => r.url.endsWith('/audio/transcriptions'))
+    record(
+      'separate STT base URL routes transcription to that endpoint',
+      sttBasePatched.sttBaseUrl === sttBase &&
+        sttResult2 === 'mock transcript' &&
+        sttBaseReq?.model === 'whisper-mock' &&
+        mock.requests.every((r) => !r.url.endsWith('/audio/transcriptions') || r.seq <= transcribeReq?.seq),
+      `sttBaseUrl=${sttBasePatched.sttBaseUrl}, hit2=${sttBaseReq?.url}`
+    )
+
+    const sttLegacy = await evaluate(
+      mainClient,
+      `window.smog.invoke('config:set', { sttBaseUrl: 'https://opencode.zen/v1/' })`
+    )
+    record(
+      'legacy STT base URL migrates to the real Zen endpoint',
+      sttLegacy.sttBaseUrl === 'https://opencode.ai/zen/v1',
+      sttLegacy.sttBaseUrl
+    )
+    const sttCleared = await evaluate(mainClient, `window.smog.invoke('config:set', { sttBaseUrl: '' })`)
+    record(
+      'clearing STT base URL falls back to the chat base URL',
+      sttCleared.sttBaseUrl === '',
+      JSON.stringify(sttCleared.sttBaseUrl)
     )
 
     await evaluate(mainClient, `window.smog.invoke('config:set', { sttModel: '', model: 'mimov2.6' })`)
@@ -929,7 +1018,8 @@ async function main() {
       `({
         extraBody: document.getElementById('extraBody')?.value ?? null,
         maxTokens: document.getElementById('maxTokens')?.value ?? null,
-        topP: document.getElementById('topP')?.value ?? null
+        topP: document.getElementById('topP')?.value ?? null,
+        sttBaseUrl: document.getElementById('sttBaseUrl')?.value ?? null
       })`
     )
     record(
@@ -939,6 +1029,11 @@ async function main() {
         advancedUi.maxTokens === '512' &&
         Number(advancedUi.topP) === 0.9,
       JSON.stringify(advancedUi)
+    )
+    record(
+      'settings modal exposes the STT base URL field',
+      typeof advancedUi.sttBaseUrl === 'string',
+      JSON.stringify(advancedUi.sttBaseUrl)
     )
   } catch (err) {
     record('e2e run', false, String(err?.stack ?? err))
@@ -956,6 +1051,7 @@ async function main() {
     }
     await rm(configPath, { force: true })
     mock.server.close()
+    mockStt.server.close()
   }
 
   const failed = results.filter((r) => !r.ok && !r.info)

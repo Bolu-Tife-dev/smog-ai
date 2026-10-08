@@ -13,6 +13,8 @@ export interface SmogConfig {
 
   baseUrl: string
 
+  sttBaseUrl: string
+
   model: string
 
   sttModel: string

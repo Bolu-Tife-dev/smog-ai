@@ -14,6 +14,7 @@ interface StoredFile {
 const DEFAULTS: SmogConfig = {
   apiKey: '',
   baseUrl: DEFAULT_BASE_URL,
+  sttBaseUrl: '',
   model: '',
   sttModel: '',
   temperature: 0.4,
@@ -35,6 +36,7 @@ const ENV_ALIASES: Array<[string, keyof SmogConfig]> = [
   ['OPENCODE_ZEN_API_KEY', 'apiKey'],
   ['LLM_MODEL_NAME', 'model'],
   ['LLM_BASE_URL', 'baseUrl'],
+  ['STT_BASE_URL', 'sttBaseUrl'],
   ['STT_MODEL_NAME', 'sttModel'],
   ['SMOG_STEALTH', 'stealth'],
   ['SMOG_SYSTEM_AUDIO', 'systemAudio'],
@@ -65,6 +67,13 @@ const LEGACY_BASE_URL = /^https?:\/\/opencode\.zen(\/|$)/i
 export function normalizeBaseUrl(raw: string): string {
   const url = raw.trim().replace(/\/+$/, '')
   if (!url) return DEFAULTS.baseUrl
+  if (LEGACY_BASE_URL.test(url)) return DEFAULT_BASE_URL
+  return url
+}
+
+export function normalizeSttBaseUrl(raw: string): string {
+  const url = raw.trim().replace(/\/+$/, '')
+  if (!url) return ''
   if (LEGACY_BASE_URL.test(url)) return DEFAULT_BASE_URL
   return url
 }
@@ -122,7 +131,9 @@ export class ConfigStore {
         baseUrl:
           typeof parsed.baseUrl === 'string' && parsed.baseUrl.trim()
             ? normalizeBaseUrl(parsed.baseUrl)
-            : DEFAULTS.baseUrl
+            : DEFAULTS.baseUrl,
+        sttBaseUrl:
+          typeof parsed.sttBaseUrl === 'string' ? normalizeSttBaseUrl(parsed.sttBaseUrl) : ''
       }
     } catch {
       this.data = { ...DEFAULTS }
@@ -173,6 +184,8 @@ export class ConfigStore {
         normalized = typeof value === 'string' ? normalizeModelId(value) : value
       if (key === 'baseUrl')
         normalized = typeof value === 'string' ? normalizeBaseUrl(value) : value
+      if (key === 'sttBaseUrl')
+        normalized = typeof value === 'string' ? normalizeSttBaseUrl(value) : value
       ;(this.data as unknown as Record<string, unknown>)[key] = normalized
     }
     this.persist()

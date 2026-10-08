@@ -61,6 +61,13 @@ async function errorFromResponse(res: Response): Promise<LlmError> {
   } catch {
     detail = ''
   }
+  if (/FreeTierError|free tier can only be used from within OpenCode/i.test(detail))
+    return new LlmError(
+      'This model is part of OpenCode’s free tier, which only works inside the OpenCode app itself. ' +
+        'Either add credits at opencode.ai/zen and switch to a paid model (e.g. qwen3.8-flash), ' +
+        'or set the base URL to another provider such as Groq (https://api.groq.com/openai/v1).',
+      res.status
+    )
   const hints: Record<number, string> = {
     400: 'Request rejected by the endpoint — check model name and payload.',
     401: 'Unauthorized — check OPENCODE_ZEN_API_KEY.',

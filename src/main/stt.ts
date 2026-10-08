@@ -30,7 +30,7 @@ async function readError(res: Response, what: string): Promise<LlmError> {
   return new LlmError(
     `${what} failed (${res.status})${detail ? `: ${detail}` : ''}.` +
       (res.status === 404
-        ? ' This base URL has no /audio/transcriptions route — clear the STT model in Settings to use chat-based transcription, or use an endpoint that serves audio transcription.'
+        ? ' This base URL has no /audio/transcriptions route — set a dedicated STT base URL in Settings (e.g. https://api.groq.com/openai/v1 with model whisper-large-v3-turbo), or clear the STT model to use chat-based transcription.'
         : ''),
     res.status
   )
@@ -71,7 +71,8 @@ async function viaAudioEndpoint(
   form.append('file', new Blob([new Uint8Array(wav)], { type: 'audio/wav' }), `${channel}-chunk.wav`)
   form.append('response_format', 'json')
   if (language) form.append('language', language)
-  const res = await fetchAudio(endpoint(cfg.baseUrl, '/audio/transcriptions'), cfg.apiKey, form)
+  const base = cfg.sttBaseUrl.trim() ? cfg.sttBaseUrl : cfg.baseUrl
+  const res = await fetchAudio(endpoint(base, '/audio/transcriptions'), cfg.apiKey, form)
   if (!res.ok) throw await readError(res, 'Transcription')
   return parseTranscription(await res.text())
 }

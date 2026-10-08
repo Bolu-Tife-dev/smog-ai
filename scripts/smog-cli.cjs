@@ -18,8 +18,9 @@ const USAGE = [
   '',
   'First-run setup:',
   '  1. Launch the app — the settings modal opens automatically',
-  '  2. Paste your OpenCode Zen API key (OPENCODE_ZEN_API_KEY, starts with "zk-")',
-  '  3. Set the model to mimov2.6 (LLM_MODEL_NAME)',
+  '  2. Paste your API key (OPENCODE_ZEN_API_KEY, e.g. a Zen "zk-" key or a Groq key)',
+  '  3. Set the model (LLM_MODEL_NAME, e.g. qwen3.8-flash on Zen or llama-3.3-70b-versatile on Groq)',
+  '     — note: Zen free models (mimo-v2.6-flash-free) only work inside the OpenCode app itself',
   '  4. Save — the key is encrypted into ~/.config/smog-ai/config.json',
   '',
   'Package installers from source:  npm run package'

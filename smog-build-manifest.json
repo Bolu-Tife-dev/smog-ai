@@ -1,10 +1,10 @@
 {
   "appName": "Smog AI",
   "packageName": "smog-ai",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Real-time AI desktop assistant — interview copilot, screen analysis, automated notes.",
   "appId": "ai.smog.desktop",
-  "generatedAt": "2026-10-08T15:01:01.620Z",
+  "generatedAt": "2026-10-08T16:01:05.644Z",
   "generator": "npm run package:manifest",
   "supportedArchitectures": {
     "windows": [
@@ -105,13 +105,14 @@
   ],
   "setupRequirements": [
     "OPENCODE_ZEN_API_KEY — required; no key ships with the app (BYOK) and is read dynamically from ~/.config/smog-ai/config.json",
-    "LLM_MODEL_NAME — required; no model ships as a source default (e.g. mimov2.6), stored in ~/.config/smog-ai/config.json",
-    "Network access to the configured base URL (default https://opencode.ai/zen/v1) for chat completions and transcriptions",
+    "LLM_MODEL_NAME — required; no model ships as a source default (e.g. qwen3.8-flash on Zen, llama-3.3-70b-versatile on Groq), stored in ~/.config/smog-ai/config.json",
+    "Note: OpenCode free-tier models (e.g. mimo-v2.6-flash-free) only work inside the OpenCode app — from Smog AI use a paid Zen model or another OpenAI-compatible provider (e.g. Groq free tier)",
+    "Network access to the configured base URL (default https://opencode.ai/zen/v1; Groq free tier: https://api.groq.com/openai/v1) for chat completions and transcriptions",
     "Microphone permission for the Listen channel (Windows Settings › Privacy › Microphone)",
     "System loopback permission for the remote-interviewer channel — Windows-only, enabled by the setDisplayMediaRequestHandler loopback source",
     "Screen capture permission for Vision / screen scan / screen watch (desktopCapturer)",
     "Electron safeStorage (OS keychain) for encrypting the stored key; plaintext JSON is used only when the keychain is unavailable",
-    "Optional: a dedicated STT model for /audio/transcriptions; the chat audio fallback is used when STT_MODEL_NAME is empty"
+    "Optional: a dedicated STT model (e.g. whisper-large-v3-turbo on Groq) plus optional STT base URL for /audio/transcriptions; the chat audio fallback is used when STT_MODEL_NAME is empty"
   ],
   "configuration": {
     "file": "~/.config/smog-ai/config.json",
@@ -120,18 +121,20 @@
     "steps": [
       "Launch the app — the first-run settings modal opens automatically (reopen anytime via the Params HUD button or the gear icon in the title bar)",
       "Paste your OpenCode Zen API key into the API key field (starts with \"zk-\") — stored as OPENCODE_ZEN_API_KEY",
-      "Set the model field (e.g. mimov2.6) — stored as LLM_MODEL_NAME",
-      "Leave the base URL at https://opencode.ai/zen/v1 (default) or point it at a compatible OpenAI-style endpoint",
+      "Set the model field (e.g. qwen3.8-flash on Zen, or llama-3.3-70b-versatile with base URL https://api.groq.com/openai/v1 on the free Groq tier) — stored as LLM_MODEL_NAME",
+      "Leave the base URL at https://opencode.ai/zen/v1 (default) or point it at a compatible OpenAI-style endpoint (e.g. https://api.groq.com/openai/v1)",
+      "Optional — for Whisper transcription, set an STT model (e.g. whisper-large-v3-turbo) and optionally a dedicated STT base URL (e.g. https://api.groq.com/openai/v1)",
       "Optional — enable dual-channel (system loopback) capture, then expand \"Advanced model parameters\" for max_tokens, top_p, STT model and a raw JSON extraBody object",
       "Click \"Save configuration\" — the key is encrypted with the OS keychain (Electron safeStorage) and written to ~/.config/smog-ai/config.json",
       "Start the mic with the Listen HUD button, type a question into the quick-ask box (or hold Ctrl/Cmd+Alt+Space anywhere), then press Ask — or toggle Auto-Pilot (Ctrl/Cmd+Shift+A) to answer detected questions automatically",
       "Export generated notes to PDF or Markdown from the Notes tab; the app is stealth by default (hidden from screenshots and screen shares)"
     ],
     "fields": {
-      "apiKey": "OPENCODE_ZEN_API_KEY — OpenCode Zen credential, required",
-      "model": "LLM_MODEL_NAME — e.g. mimov2.6, required",
-      "baseUrl": "LLM_BASE_URL — default https://opencode.ai/zen/v1",
-      "sttModel": "STT_MODEL_NAME — optional; falls back to chat audio transcription when empty",
+      "apiKey": "OPENCODE_ZEN_API_KEY — provider credential (OpenCode Zen, Groq, …), required",
+      "model": "LLM_MODEL_NAME — e.g. qwen3.8-flash (Zen) or llama-3.3-70b-versatile (Groq), required",
+      "baseUrl": "LLM_BASE_URL — default https://opencode.ai/zen/v1; Groq: https://api.groq.com/openai/v1",
+      "sttBaseUrl": "STT_BASE_URL — optional dedicated base URL for Whisper (e.g. https://api.groq.com/openai/v1); defaults to baseUrl",
+      "sttModel": "STT_MODEL_NAME — optional; e.g. whisper-large-v3-turbo (Groq); falls back to chat audio transcription when empty",
       "temperature": "Sampling temperature (0-1)",
       "maxTokens": "max_tokens — 0 = provider default",
       "topP": "top_p — 1 = omitted",
@@ -165,7 +168,7 @@
     "pushToAsk": "CommandOrControl+Alt+Space (hold to open the quick-ask prompt)"
   },
   "verification": {
-    "lastVerifiedAt": "2026-10-08T15:01:01.622Z",
+    "lastVerifiedAt": "2026-10-08T16:01:05.646Z",
     "typecheck": "CLEAN — npm run typecheck (typecheck:node + typecheck:web)",
     "workletCheck": "OK — node scripts/check-worklet.cjs (AudioWorklet source syntax)",
     "e2e": "38/38 CHECKS PASSED — node scripts/e2e.mjs (CDP port 9333, local OpenAI mock)",
