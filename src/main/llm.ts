@@ -65,7 +65,7 @@ async function errorFromResponse(res: Response): Promise<LlmError> {
     return new LlmError(
       'This model is part of OpenCode’s free tier, which only works inside the OpenCode app itself. ' +
         'Either add credits at opencode.ai/zen and switch to a paid model (e.g. qwen3.8-flash), ' +
-        'or set the base URL to another provider such as Groq (https://api.groq.com/openai/v1).',
+        'or set the base URL to the free Groq tier (https://api.groq.com/openai/v1) with model qwen/qwen3.8-27b.',
       res.status
     )
   const hints: Record<number, string> = {

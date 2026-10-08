@@ -118,7 +118,7 @@ const manifest = {
   artifacts,
   setupRequirements: [
     'OPENCODE_ZEN_API_KEY — required; no key ships with the app (BYOK) and is read dynamically from ~/.config/smog-ai/config.json',
-    'LLM_MODEL_NAME — required; no model ships as a source default (e.g. qwen3.8-flash on Zen, llama-3.3-70b-versatile on Groq), stored in ~/.config/smog-ai/config.json',
+    'LLM_MODEL_NAME — required; no model ships as a source default (e.g. qwen3.8-flash on Zen, qwen/qwen3.8-27b on Groq), stored in ~/.config/smog-ai/config.json',
     'Note: OpenCode free-tier models (e.g. mimo-v2.6-flash-free) only work inside the OpenCode app — from Smog AI use a paid Zen model or another OpenAI-compatible provider (e.g. Groq free tier)',
     'Network access to the configured base URL (default https://opencode.ai/zen/v1; Groq free tier: https://api.groq.com/openai/v1) for chat completions and transcriptions',
     'Microphone permission for the Listen channel (Windows Settings › Privacy › Microphone)',
@@ -134,7 +134,7 @@ const manifest = {
     steps: [
       'Launch the app — the first-run settings modal opens automatically (reopen anytime via the Params HUD button or the gear icon in the title bar)',
       'Paste your OpenCode Zen API key into the API key field (starts with "zk-") — stored as OPENCODE_ZEN_API_KEY',
-      'Set the model field (e.g. qwen3.8-flash on Zen, or llama-3.3-70b-versatile with base URL https://api.groq.com/openai/v1 on the free Groq tier) — stored as LLM_MODEL_NAME',
+      'Set the model field (e.g. qwen3.8-flash on Zen, or qwen/qwen3.8-27b with base URL https://api.groq.com/openai/v1 on the free Groq tier) — stored as LLM_MODEL_NAME',
       'Leave the base URL at https://opencode.ai/zen/v1 (default) or point it at a compatible OpenAI-style endpoint (e.g. https://api.groq.com/openai/v1)',
       'Optional — for Whisper transcription, set an STT model (e.g. whisper-large-v3-turbo) and optionally a dedicated STT base URL (e.g. https://api.groq.com/openai/v1)',
       'Optional — enable dual-channel (system loopback) capture, then expand "Advanced model parameters" for max_tokens, top_p, STT model and a raw JSON extraBody object',
@@ -144,7 +144,7 @@ const manifest = {
     ],
     fields: {
       apiKey: 'OPENCODE_ZEN_API_KEY — provider credential (OpenCode Zen, Groq, …), required',
-      model: 'LLM_MODEL_NAME — e.g. qwen3.8-flash (Zen) or llama-3.3-70b-versatile (Groq), required',
+      model: 'LLM_MODEL_NAME — e.g. qwen3.8-flash (Zen) or qwen/qwen3.8-27b (Groq), required',
       baseUrl: 'LLM_BASE_URL — default https://opencode.ai/zen/v1; Groq: https://api.groq.com/openai/v1',
       sttBaseUrl: 'STT_BASE_URL — optional dedicated base URL for Whisper (e.g. https://api.groq.com/openai/v1); defaults to baseUrl',
       sttModel: 'STT_MODEL_NAME — optional; e.g. whisper-large-v3-turbo (Groq); falls back to chat audio transcription when empty',

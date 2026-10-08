@@ -163,7 +163,7 @@ export function SettingsModal() {
               <input
                 id="model"
                 className={field}
-                placeholder="e.g. qwen3.8-flash (Zen) or llama-3.3-70b-versatile (Groq)"
+                placeholder="e.g. qwen3.8-flash (Zen) or qwen/qwen3.8-27b (Groq)"
                 value={model}
                 onChange={(e) => setModel(e.target.value)}
               />
