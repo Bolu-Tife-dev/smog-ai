@@ -1,4 +1,4 @@
-import type { ChatMessage, SmogConfig } from '@shared/types'
+import { DEFAULT_BASE_URL, type ChatMessage, type SmogConfig } from '@shared/types'
 
 export class LlmError extends Error {
   constructor(
@@ -164,6 +164,26 @@ function mapGuardError(guard: RequestGuard, err: unknown): never {
   throw err
 }
 
+export function unreachableError(err: unknown, url: string, what = 'endpoint'): LlmError {
+  const outer = err as { cause?: { code?: string; message?: string; cause?: { code?: string; message?: string } } }
+  const cause = outer?.cause
+  const reason =
+    cause?.code ??
+    cause?.cause?.code ??
+    cause?.message ??
+    cause?.cause?.message ??
+    (err instanceof Error ? err.message : String(err))
+  let host = url
+  try {
+    host = new URL(url).host
+  } catch {
+    /* keep raw url */
+  }
+  return new LlmError(
+    `Cannot reach the ${what} at ${host} (${reason}). Check the base URL in Settings (gear icon) — the default is ${DEFAULT_BASE_URL}.`
+  )
+}
+
 async function readAll(res: Response, guard: RequestGuard): Promise<string> {
   guard.armIdle()
   const reader = res.body?.getReader()
@@ -233,9 +253,10 @@ async function* request(
   const guard = new RequestGuard(external, cfg.idleTimeoutMs)
   try {
     let res: Response
+    const url = endpoint(cfg.baseUrl, '/chat/completions')
     try {
       guard.armConnect()
-      res = await fetch(endpoint(cfg.baseUrl, '/chat/completions'), {
+      res = await fetch(url, {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
@@ -245,7 +266,8 @@ async function* request(
         signal: guard.signal
       })
     } catch (err) {
-      mapGuardError(guard, err)
+      if (guard.timeout) mapGuardError(guard, err)
+      throw unreachableError(err, url)
     }
     if (!res.ok) throw await errorFromResponse(res)
 

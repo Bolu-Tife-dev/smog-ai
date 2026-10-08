@@ -60,6 +60,22 @@ function applyEnvAliases(target: Record<string, unknown>): void {
   }
 }
 
+const LEGACY_BASE_URL = /^https?:\/\/opencode\.zen(\/|$)/i
+
+export function normalizeBaseUrl(raw: string): string {
+  const url = raw.trim().replace(/\/+$/, '')
+  if (!url) return DEFAULTS.baseUrl
+  if (LEGACY_BASE_URL.test(url)) return DEFAULT_BASE_URL
+  return url
+}
+
+export function normalizeModelId(raw: string): string {
+  let id = raw.trim().replace(/^["'`]|["'`]$/g, '')
+  id = id.replace(/^opencode\//i, '')
+  if (/\s/.test(id)) id = id.toLowerCase().replace(/\s+/g, '-')
+  return id
+}
+
 export function configDir(): string {
   return join(homedir(), '.config', 'smog-ai')
 }
@@ -93,13 +109,20 @@ export class ConfigStore {
       const parsed = JSON.parse(raw) as Partial<SmogConfig> & Record<string, unknown>
       applyEnvAliases(parsed)
       const key = typeof parsed.apiKey === 'string' ? parsed.apiKey : ''
-      const model = typeof parsed.model === 'string' ? parsed.model : ''
+      const model =
+        typeof parsed.model === 'string' ? normalizeModelId(parsed.model) : ''
+      const sttModel =
+        typeof parsed.sttModel === 'string' ? normalizeModelId(parsed.sttModel) : ''
       this.data = {
         ...DEFAULTS,
         ...parsed,
         apiKey: key,
         model,
-        baseUrl: typeof parsed.baseUrl === 'string' && parsed.baseUrl.trim() ? parsed.baseUrl : DEFAULTS.baseUrl
+        sttModel,
+        baseUrl:
+          typeof parsed.baseUrl === 'string' && parsed.baseUrl.trim()
+            ? normalizeBaseUrl(parsed.baseUrl)
+            : DEFAULTS.baseUrl
       }
     } catch {
       this.data = { ...DEFAULTS }
@@ -145,7 +168,12 @@ export class ConfigStore {
     for (const [key, value] of Object.entries(patch)) {
       if (value === undefined) continue
       if (!(key in DEFAULTS)) continue
-      ;(this.data as unknown as Record<string, unknown>)[key] = value
+      let normalized: unknown = value
+      if (key === 'model' || key === 'sttModel')
+        normalized = typeof value === 'string' ? normalizeModelId(value) : value
+      if (key === 'baseUrl')
+        normalized = typeof value === 'string' ? normalizeBaseUrl(value) : value
+      ;(this.data as unknown as Record<string, unknown>)[key] = normalized
     }
     this.persist()
     return this.public()

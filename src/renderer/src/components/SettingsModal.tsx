@@ -160,7 +160,7 @@ export function SettingsModal() {
               <input
                 id="model"
                 className={field}
-                placeholder="e.g. mimov2.6"
+                placeholder="mimo-v2.6-flash-free"
                 value={model}
                 onChange={(e) => setModel(e.target.value)}
               />
@@ -186,7 +186,7 @@ export function SettingsModal() {
             <input
               id="baseUrl"
               className={field}
-              placeholder="https://opencode.zen/v1"
+              placeholder="https://opencode.ai/zen/v1"
               value={baseUrl}
               onChange={(e) => setBaseUrl(e.target.value)}
             />

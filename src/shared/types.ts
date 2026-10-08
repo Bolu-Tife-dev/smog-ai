@@ -1,4 +1,4 @@
-export const DEFAULT_BASE_URL = 'https://opencode.zen/v1'
+export const DEFAULT_BASE_URL = 'https://opencode.ai/zen/v1'
 
 export type AudioChannel = 'mic' | 'system'
 

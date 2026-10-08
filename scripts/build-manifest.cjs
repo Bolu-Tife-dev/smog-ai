@@ -119,7 +119,7 @@ const manifest = {
   setupRequirements: [
     'OPENCODE_ZEN_API_KEY — required; no key ships with the app (BYOK) and is read dynamically from ~/.config/smog-ai/config.json',
     'LLM_MODEL_NAME — required; no model ships as a source default (e.g. mimov2.6), stored in ~/.config/smog-ai/config.json',
-    'Network access to the configured base URL (default https://opencode.zen/v1) for chat completions and transcriptions',
+    'Network access to the configured base URL (default https://opencode.ai/zen/v1) for chat completions and transcriptions',
     'Microphone permission for the Listen channel (Windows Settings › Privacy › Microphone)',
     'System loopback permission for the remote-interviewer channel — Windows-only, enabled by the setDisplayMediaRequestHandler loopback source',
     'Screen capture permission for Vision / screen scan / screen watch (desktopCapturer)',
@@ -134,7 +134,7 @@ const manifest = {
       'Launch the app — the first-run settings modal opens automatically (reopen anytime via the Params HUD button or the gear icon in the title bar)',
       'Paste your OpenCode Zen API key into the API key field (starts with "zk-") — stored as OPENCODE_ZEN_API_KEY',
       'Set the model field (e.g. mimov2.6) — stored as LLM_MODEL_NAME',
-      'Leave the base URL at https://opencode.zen/v1 (default) or point it at a compatible OpenAI-style endpoint',
+      'Leave the base URL at https://opencode.ai/zen/v1 (default) or point it at a compatible OpenAI-style endpoint',
       'Optional — enable dual-channel (system loopback) capture, then expand "Advanced model parameters" for max_tokens, top_p, STT model and a raw JSON extraBody object',
       'Click "Save configuration" — the key is encrypted with the OS keychain (Electron safeStorage) and written to ~/.config/smog-ai/config.json',
       'Start the mic with the Listen HUD button, type a question into the quick-ask box (or hold Ctrl/Cmd+Alt+Space anywhere), then press Ask — or toggle Auto-Pilot (Ctrl/Cmd+Shift+A) to answer detected questions automatically',
@@ -143,7 +143,7 @@ const manifest = {
     fields: {
       apiKey: 'OPENCODE_ZEN_API_KEY — OpenCode Zen credential, required',
       model: 'LLM_MODEL_NAME — e.g. mimov2.6, required',
-      baseUrl: 'LLM_BASE_URL — default https://opencode.zen/v1',
+      baseUrl: 'LLM_BASE_URL — default https://opencode.ai/zen/v1',
       sttModel: 'STT_MODEL_NAME — optional; falls back to chat audio transcription when empty',
       temperature: 'Sampling temperature (0-1)',
       maxTokens: 'max_tokens — 0 = provider default',

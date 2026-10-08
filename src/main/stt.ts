@@ -1,5 +1,5 @@
 import type { AudioChannel, ChatMessage, SmogConfig } from '@shared/types'
-import { LlmError, chat, endpoint, requireConfigured } from './llm'
+import { LlmError, chat, endpoint, requireConfigured, unreachableError } from './llm'
 
 const STT_TIMEOUT_MS = 90_000
 
@@ -30,7 +30,7 @@ async function readError(res: Response, what: string): Promise<LlmError> {
   return new LlmError(
     `${what} failed (${res.status})${detail ? `: ${detail}` : ''}.` +
       (res.status === 404
-        ? ' If the endpoint has no /audio/transcriptions route, set an STT model in Settings.'
+        ? ' This base URL has no /audio/transcriptions route — clear the STT model in Settings to use chat-based transcription, or use an endpoint that serves audio transcription.'
         : ''),
     res.status
   )
@@ -71,14 +71,25 @@ async function viaAudioEndpoint(
   form.append('file', new Blob([new Uint8Array(wav)], { type: 'audio/wav' }), `${channel}-chunk.wav`)
   form.append('response_format', 'json')
   if (language) form.append('language', language)
-  const res = await fetch(endpoint(cfg.baseUrl, '/audio/transcriptions'), {
-    method: 'POST',
-    headers: { authorization: `Bearer ${cfg.apiKey}` },
-    body: form,
-    signal: AbortSignal.timeout(STT_TIMEOUT_MS)
-  })
+  const res = await fetchAudio(endpoint(cfg.baseUrl, '/audio/transcriptions'), cfg.apiKey, form)
   if (!res.ok) throw await readError(res, 'Transcription')
   return parseTranscription(await res.text())
+}
+
+async function fetchAudio(url: string, apiKey: string, form: FormData): Promise<Response> {
+  try {
+    return await fetch(url, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${apiKey}` },
+      body: form,
+      signal: AbortSignal.timeout(STT_TIMEOUT_MS)
+    })
+  } catch (err) {
+    const name = (err as Error)?.name
+    if (name === 'TimeoutError' || name === 'AbortError')
+      throw new LlmError(`Transcription timed out after ${STT_TIMEOUT_MS / 1000}s.`)
+    throw unreachableError(err, url, 'transcription endpoint')
+  }
 }
 
 async function viaChatEndpoint(

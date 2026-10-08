@@ -276,7 +276,7 @@ async function main() {
       setupResult.modal === true && setupResult.needsSetup === false && setupResult.hasApiKey === true,
       JSON.stringify(setupResult)
     )
-    record('base URL defaults to OpenCode Zen endpoint', setupResult.baseUrl === 'https://opencode.zen/v1')
+    record('base URL defaults to OpenCode Zen endpoint', setupResult.baseUrl === 'https://opencode.ai/zen/v1')
 
     const freshState = await evaluate(
       mainClient,
@@ -382,6 +382,17 @@ async function main() {
         topP: patched.topP,
         extraBody: patched.extraBody
       })
+    )
+
+    const displayModel = await evaluate(
+      mainClient,
+      `window.smog.invoke('config:set', { model: 'Mimo V2.6 Flash Free' })`
+    )
+    await evaluate(mainClient, `window.smog.invoke('config:set', { model: 'mimov2.6' })`)
+    record(
+      'display-name model normalizes to an API model id',
+      displayModel.model === 'mimo-v2.6-flash-free',
+      displayModel.model
     )
 
     await evaluate(
